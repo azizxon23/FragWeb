@@ -1,0 +1,4 @@
+import {z} from "zod";
+export const listingInput=z.object({
+ seller:z.string().trim().min(2).max(70),phone:z.string().regex(/^\+998[0-9]{9}$/),telegram:z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/),city:z.enum(["Tashkent","Samarkand","Bukhara","Andijan","Namangan","Fergana","Nukus","Qarshi","Jizzakh","Navoi","Termez","Urgench","Gulistan"]),brand:z.string().trim().min(2).max(80),name:z.string().trim().min(2).max(100),gender:z.enum(["men","women","unisex"]),size:z.number().int().min(1).max(2000),remaining:z.number().int().min(1).max(2000),price:z.number().int().min(1000).max(100000000),condition:z.enum(["box","bottle"]),description:z.string().trim().min(15).max(2000),photos:z.array(z.string().regex(/^\/api\/images\/[a-f0-9-]+\.(jpg|png|webp)$/)).min(1).max(4)
+}).refine(v=>v.remaining<=v.size,{message:"Remaining volume cannot exceed bottle size",path:["remaining"]});

@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {listingInput} from '../lib/validation.ts';
+import {identify} from '../lib/catalog.ts';
+const listing={seller:'Test Seller',phone:'+998901234567',telegram:'test_seller',city:'Tashkent',brand:'Creed',name:'Aventus',gender:'men',size:100,remaining:80,price:1000000,condition:'box',description:'My perfume with its original packaging.',photos:['/api/images/12345678-1234-1234-1234-123456789abc.jpg']};
+test('listing validates volume, phone, username and uploaded photo URLs',()=>{assert.equal(listingInput.safeParse(listing).success,true);for(const change of [{remaining:101},{price:-1},{phone:'901234567'},{telegram:'https://t.me/user'},{photos:[]},{photos:['https://evil.test/photo.jpg']}]){assert.equal(listingInput.safeParse({...listing,...change}).success,false,JSON.stringify(change));}});
+test('catalog matcher ranks the requested fragrance and rejects unknown inputs',()=>{assert.equal(identify('creed aventus')[0].id,'aventus');assert.equal(identify('BACCARAT')[0].id,'baccarat');assert.equal(identify('dior sauv')[0].id,'sauvage');assert.deepEqual(identify('unknown completely'),[]);assert.deepEqual(identify(''),[]);});
+import {validateTelegramInitData} from '../lib/telegram.ts';
+import {createHmac} from 'node:crypto';
+function initData(token,age=0){const params=new URLSearchParams({auth_date:String(Math.floor(Date.now()/1000)-age),user:JSON.stringify({id:123456789,first_name:'Test'})});const data=[...params.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n');const key=createHmac('sha256','WebAppData').update(token).digest();params.set('hash',createHmac('sha256',key).update(data).digest('hex'));return params.toString();}
+test('Telegram auth rejects tampering, wrong tokens and stale sign-ins',async()=>{const token='test-only-token';const raw=initData(token);assert.equal(await validateTelegramInitData(raw,token),'telegram:123456789');assert.equal(await validateTelegramInitData(raw,'wrong'),null);assert.equal(await validateTelegramInitData(raw.replace('Test','Changed'),token),null);assert.equal(await validateTelegramInitData(initData(token,7200),token),null);assert.equal(await validateTelegramInitData('invalid',token),null);});
