@@ -8,7 +8,21 @@ This is a working first version, published as an owner-private preview. Listings
 
 An empty marketplace displays clearly labelled **sample listings** with bottle illustrations. These are not real offers, cannot be contacted, and are never inserted into the database. Actual listings require the seller's own photos, account sign-in, name, current city/region, Uzbek phone number, Telegram username, packaging, description, price, total volume, and remaining volume. Phone numbers and account identifiers are excluded from listing responses. Birthplace is not collected.
 
-Buyers and sellers chat directly on Telegram. There is no in-site messaging, payment processing, delivery service, or authenticity verification. Sellers can mark their own listings as sold under **My listings**. Photos are validated by type signatures and limited to four per listing, 5 MB per file.
+Buyers and sellers chat directly on Telegram. There is no in-site messaging, payment processing, delivery service, or authenticity verification. Sellers create a reusable profile with private contact details and can mark their own listings as sold under **My listings**. Public seller profiles show only their name, city, Telegram, bio, join date, and active listing count. Photos are validated by type signatures and limited to four per listing, 5 MB per file.
+
+## Accounts, administrator access, and translated validation
+
+Open **My profile** from the person icon or footer, sign in, and save your seller details. A profile is required before uploading photos or publishing. Listing contact details are taken from the authenticated account, preventing seller impersonation. Profile edits are reflected in public listing contact details, including existing listings for that account.
+
+Open **Admin panel** from the shield icon or your profile. The panel provides registered-profile statistics, paginated search of users and listings, private contact details, reversible account suspension, listing visibility moderation, and an audit history with required reasons. Suspended sellers' listings and public profiles are hidden, and their upload, listing, and profile write APIs reject requests. Listing moderation preserves the seller's active/sold state.
+
+Administrative access is checked on every API request against the secret runtime variable `FRAGWEB_ADMIN_EMAILS`, a comma-separated list of trusted ChatGPT sign-in emails. The deployed preview is configured for the verified Site owner. The allowlist is not committed to Git, and users cannot assign roles through profile input. Access fails closed if the variable is absent. Telegram accounts are not administrators unless a separate explicit administrative identity design is added later.
+
+For **portable loopback development only**, put `FRAGWEB_ADMIN_EMAILS="seedy@sites.test"` into the ignored `.dev.vars` file if you want the starter's simulated local account to exercise the panel. Never use the development identity for a public deployment. The deployed allowlist does not sync into your local Git checkout.
+
+Profiles appear in the administrator's user list after users save them; anonymous visitors and login-only accounts are not registered profiles. All administrator actions require a reason and write an audit row in the same database batch as the update. The owner account is protected from suspension.
+
+Forms use application-owned validation with `noValidate`, so warning language follows the selected EN/RU/UZ language rather than the browser's locale. API failures carry stable codes and localized messages selected with `X-Fragweb-Language: en|ru|uz`. Error codes are translated again by the interface, so an existing error can be rendered in the current language. The server continues to validate all submitted data independently.
 
 ## Open in VS Code and Codex
 
@@ -23,7 +37,7 @@ npm ci
 npm run build
 ```
 
-Otherwise extract the source archive, open its folder in VS Code, and initialize/push it using your GitHub account. This project does not contain GitHub credentials. The hosted source repository is separate from the user's GitHub repository; configuring a remote alone does not prove a push occurred.
+Your Mac checkout is `~/Developer/FragWeb`. The separately installed per-user sync service checks GitHub main every 30 seconds and only fast-forwards a clean checkout. Keep local changes committed or resolve them explicitly; the service intentionally pauses for a dirty or diverged checkout. This project contains no GitHub credentials. The hosted source repository and GitHub have separate histories; releases must contain the same source tree.
 
 Requires Node.js 22.13 or newer. `AGENTS.md` gives Codex the project requirements and next milestones.
 
@@ -41,6 +55,15 @@ Apply the initial migration once to the local database:
 ```bash
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_broad_pepper_potts.sql
 ```
+
+Apply each later migration once in order as well:
+
+```bash
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_smiling_captain_marvel.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0002_bored_killmonger.sql
+```
+
+Do not replay migrations already applied. `git pull` updates source files; it does not install dependencies, migrate your local database, or deploy the hosted site.
 
 Then run:
 
@@ -80,6 +103,9 @@ A photo model would need a labelled image dataset, candidate confidence scores, 
 ## Source map
 
 - `app/page.tsx`: responsive marketplace and seller flows
+- `app/account-panel.tsx`, `app/admin-panel.tsx`: profiles and administrative controls
+- `app/api/profile`, `app/api/profiles`, `app/api/admin`: owner-scoped and public profile APIs, server-authorized management
+- `lib/errors.ts`, `lib/form-validation.ts`: localized errors and accessible client validation
 - `app/globals.css`: visual system and mobile layouts
 - `lib/i18n.ts`: English, Russian, and Uzbek UI text
 - `lib/catalog.ts`: sample data and fragrance name matching
@@ -95,14 +121,15 @@ A photo model would need a labelled image dataset, candidate confidence scores, 
 ```bash
 npx tsc --noEmit
 node --experimental-strip-types --test tests/domain.test.mjs
+node --test tests/api.test.mjs
 npm run build
 ```
 
-Tests cover validation boundaries, catalog ranking, unknown matches, and valid/tampered/expired Telegram signatures. Browser checks cover catalog display, finder, filtering, saved items, translations, and sign-in gating. Full authenticated publishing and real Telegram client end-to-end checks require a signed-in deployment / connected bot.
+Tests cover validation boundaries, EN/RU/UZ errors, catalog ranking, unknown matches, valid/tampered/expired Telegram signatures, and fail-closed administrator permissions. The isolated Miniflare API test applies every migration and exercises profile privacy, role injection rejection, uploads, ownership, moderation, suspension, restoration, audit logging, and same-origin checks. Test identities and records are temporary and never inserted into the deployed database. Browser checks cover catalog display, finder, filtering, saved items, translations, and sign-in gating. Full authenticated publishing and real Telegram client end-to-end checks require a signed-in deployment / connected bot.
 
 ## Before a public launch
 
-Add reporting, moderation, seller verification, listing edit/delete, account deletion, rate limits, upload cleanup, pagination beyond 200 results, and an operational privacy/contact process. Review Uzbek data-hosting and consumer rules with qualified local advice. Contact and payment are currently arranged directly between users.
+Add reporting, seller verification, listing edit/delete, account deletion, rate limits, upload cleanup, public-catalog pagination beyond 200 results, and an operational privacy/contact process. Administrator search is already paginated at 20 rows per page. D1 indexes support owner and catalog queries. Review Uzbek data-hosting and consumer rules with qualified local advice. Contact and payment are currently arranged directly between users.
 
 On Sites, ChatGPT identity headers are injected by the trusted dispatch layer. On any other host, do not trust client-provided `oai-authenticated-user-id` headers: replace that authentication path with verified sessions or Telegram validation, and strip incoming identity headers at the edge. Keep the API and database server-side.
 

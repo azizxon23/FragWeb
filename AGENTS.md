@@ -14,11 +14,20 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 - Sample cards must stay labelled and must not become real database records or contactable offers.
 - Current finder is name matching against a starter catalog, not AI photo recognition. Do not claim otherwise.
 
+## Accounts and authorization
+
+- Admin access is derived only from the server-secret FRAGWEB_ADMIN_EMAILS allowlist and trusted ChatGPT identity headers. It is not a user-editable profile role. Never make the first registrant an administrator.
+- Keep all private contact data out of public profile/listing responses. Admin and owner endpoints may expose only the data appropriate for that role.
+- Suspended profiles must be excluded from public listings and must be blocked from write actions, including uploads.
+- Admin mutations must include a reason and atomically record an audit event. Preserve the owner suspension guard.
+- User-visible errors must use stable codes from lib/errors.ts and be localized in EN/RU/UZ. Browser-language validation popovers are disabled; never remove server validation.
+
 ## Commands
 
 ```bash
 npx tsc --noEmit
 node --experimental-strip-types --test tests/domain.test.mjs
+node --test tests/api.test.mjs
 npm run build
 ```
 
@@ -26,8 +35,8 @@ Read README.md for local database migration and Mac setup. Preserve `sites()` in
 
 ## Next milestones
 
-1. Connect/push the source to https://github.com/azizxon23/FragWeb.git using authorized GitHub credentials. Never claim a remote has been pushed without checking.
-2. Add seller edit/delete and account deletion, then moderation, reporting, and rate limits.
+1. Keep GitHub main and the hosted release on identical source trees. The Mac auto-sync only fast-forwards a clean checkout. Never overwrite local work, commit runtime secrets, or claim local synchronization without evidence.
+2. Add seller edit/delete, account deletion, reporting, and rate limits. Profiles, reversible admin moderation, and action audit logging are implemented.
 3. Create Telegram integration only when the user supplies the bot/channel configuration securely. Add webhook deduplication and an outbox before automated channel posts.
 4. Extend the catalog, then optionally evaluate a photo recognition service with confidence thresholds and human confirmation.
 
