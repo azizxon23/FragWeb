@@ -1,4 +1,5 @@
 "use client";
+import { cityNames } from "@/lib/cities";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -16,7 +17,6 @@ import {
   Sparkles,
   ArrowLeft,
   Package,
-  ShieldCheck,
   Menu,
   Camera,
   User,
@@ -33,7 +33,6 @@ import {
 } from "@/lib/errors";
 import { validateForm, focusInvalid } from "@/lib/form-validation";
 import AccountPanel, { SellerProfile } from "./account-panel";
-import AdminPanel from "./admin-panel";
 import type { Profile, AccountData, PublicProfile } from "@/lib/account-types";
 const cities = [
   "Tashkent",
@@ -50,28 +49,13 @@ const cities = [
   "Urgench",
   "Gulistan",
 ];
-const cityNames: Record<string, string[]> = {
-  Tashkent: ["Tashkent", "Ташкент", "Toshkent"],
-  Samarkand: ["Samarkand", "Самарканд", "Samarqand"],
-  Bukhara: ["Bukhara", "Бухара", "Buxoro"],
-  Andijan: ["Andijan", "Андижан", "Andijon"],
-  Namangan: ["Namangan", "Наманган", "Namangan"],
-  Fergana: ["Fergana", "Фергана", "Farg‘ona"],
-  Nukus: ["Nukus", "Нукус", "Nukus"],
-  Qarshi: ["Qarshi", "Карши", "Qarshi"],
-  Jizzakh: ["Jizzakh", "Джизак", "Jizzax"],
-  Navoi: ["Navoi", "Навои", "Navoiy"],
-  Termez: ["Termez", "Термез", "Termiz"],
-  Urgench: ["Urgench", "Ургенч", "Urganch"],
-  Gulistan: ["Gulistan", "Гулистан", "Guliston"],
-};
+
 type Modal =
   | "sell"
   | "finder"
   | "how"
   | "privacy"
   | "profile"
-  | "admin"
   | "publicProfile"
   | null;
 declare global {
@@ -233,7 +217,6 @@ export default function Home() {
     [busy, setBusy] = useState(false),
     [formErr, setFormErr] = useState<ErrorInfo | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null),
-    [isAdmin, setIsAdmin] = useState(false),
     [profileLoading, setProfileLoading] = useState(true),
     [returnToSell, setReturnToSell] = useState(false),
     [fieldErrors, setFieldErrors] = useState<Record<string, ErrorInfo>>({}),
@@ -268,16 +251,14 @@ export default function Home() {
     window.Telegram?.WebApp.expand();
     refresh();
     fetch("/api/me", { headers: headers() })
-      .then(apiJson<{ signedIn: boolean; isAdmin: boolean }>)
+      .then(apiJson<{ signedIn: boolean }>)
       .then(async (d) => {
         setSignedIn(d.signedIn);
-        setIsAdmin(d.isAdmin);
         if (d.signedIn) {
           const a = await apiJson<AccountData>(
             await fetch("/api/profile", { headers: headers() }),
           );
           setProfile(a.profile);
-          setIsAdmin(a.isAdmin);
           if (a.profile)
             setForm((v) => ({
               ...v,
@@ -388,7 +369,6 @@ export default function Home() {
   }
   function savedProfile(data: AccountData) {
     setProfile(data.profile);
-    setIsAdmin(data.isAdmin);
     if (data.profile)
       setForm((v) => ({
         ...v,
@@ -652,15 +632,7 @@ export default function Home() {
           >
             <User size={20} />
           </button>
-          {isAdmin && (
-            <button
-              className="icon-button admin-link"
-              onClick={() => setModal("admin")}
-              aria-label={t("adminPanel")}
-            >
-              <ShieldCheck size={20} />
-            </button>
-          )}
+          {!signedIn && <a className="market-signin" href="/signin-with-chatgpt?return_to=%2F%3Fprofile%3D1" target="_top">{t("loginOrRegister")}</a>}
           <button className="primary sell-nav" onClick={openSell}>
             <Plus size={17} />
             {t("sell")}
@@ -946,9 +918,6 @@ export default function Home() {
         </div>
         <div className="footer-links">
           <button onClick={openAccount}>{t("profile")}</button>
-          {isAdmin && (
-            <button onClick={() => setModal("admin")}>{t("adminPanel")}</button>
-          )}
           <button onClick={my}>{t("my")}</button>
           <button onClick={() => setModal("how")}>{t("how")}</button>
           <button onClick={() => setModal("privacy")}>{t("privacy")}</button>
@@ -967,7 +936,6 @@ export default function Home() {
         </div>
       </footer>
       <dialog
-        className={modal === "admin" ? "wide" : ""}
         ref={dialog}
         onCancel={(e) => {
           e.preventDefault();
@@ -993,18 +961,14 @@ export default function Home() {
               lang={lang}
               headers={headers}
               profile={profile}
-              isAdmin={isAdmin}
               signedIn={signedIn}
               onSave={savedProfile}
               onMy={() => {
                 close();
                 my();
               }}
-              onAdmin={() => setModal("admin")}
               cityName={cn}
             />
-          ) : modal === "admin" ? (
-            <AdminPanel lang={lang} headers={headers} cityName={cn} />
           ) : modal === "publicProfile" ? (
             <>
               {publicError ? (

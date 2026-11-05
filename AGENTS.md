@@ -16,7 +16,9 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 
 ## Accounts and authorization
 
-- Admin access is derived only from the server-secret FRAGWEB_ADMIN_EMAILS allowlist and trusted ChatGPT identity headers. It is not a user-editable profile role. Never make the first registrant an administrator.
+- Marketplace `/` and dark admin portal `/admin` are separate experiences. Never put admin controls or badges in seller profiles.
+- Admin APIs require a separate HttpOnly password session bound to verified ChatGPT identity. The protected owner uses FRAGWEB_OWNER_EMAIL and FRAGWEB_OWNER_PASSWORD_HASH runtime secrets; additional administrative identities live in admin_accounts, separate from profiles. Admins may add/revoke other admins with required audit reasons. Never expose hashes, grant access from a claimed email, remove the protected owner, or make the first registrant an admin.
+- Admin password sessions expire after 8 hours; revocation invalidates sessions immediately. Keep login rate limits, same-origin checks, and server enforcement. Public browsing is anonymous; uploads, selling and profile writes require verified identity.
 - Keep all private contact data out of public profile/listing responses. Admin and owner endpoints may expose only the data appropriate for that role.
 - Suspended profiles must be excluded from public listings and must be blocked from write actions, including uploads.
 - Admin mutations must include a reason and atomically record an audit event. Preserve the owner suspension guard.

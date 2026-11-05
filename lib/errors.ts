@@ -129,6 +129,10 @@ export const errorMessages = {
     "Укажите причину: от 5 до 300 символов.",
     "Sababni 5–300 ta belgi bilan yozing.",
   ],
+  adminCredentials: ["The email or password is incorrect, or this account has no admin access.", "Неверный email или пароль, либо у аккаунта нет прав администратора.", "Email yoki parol noto‘g‘ri yoki akkauntda administrator huquqi yo‘q."],
+  adminRateLimit: ["Too many attempts. Try again in 15 minutes.", "Слишком много попыток. Повторите через 15 минут.", "Urinishlar juda ko‘p. 15 daqiqadan so‘ng qayta urining."],
+  adminInput: ["Enter a valid email, a password of 12–128 characters, and a reason of 5–300 characters.", "Введите корректный email, пароль из 12–128 символов и причину из 5–300 символов.", "To‘g‘ri email, 12–128 belgili parol va 5–300 belgili sabab kiriting."],
+  adminExists: ["This administrator already exists.", "Этот администратор уже добавлен.", "Bu administrator allaqachon qo‘shilgan."],
 } as const;
 export type ErrorCode = keyof typeof errorMessages;
 export type ErrorInfo = { code: ErrorCode; field?: string; limit?: number };

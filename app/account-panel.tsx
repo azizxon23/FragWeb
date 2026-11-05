@@ -3,7 +3,6 @@ import { useState } from "react";
 import {
   ArrowRight,
   User,
-  ShieldCheck,
   LogOut,
   MapPin,
   MessageCircle,
@@ -23,22 +22,18 @@ type Props = {
   lang: number;
   headers: ApiHeaders;
   profile: Profile | null;
-  isAdmin: boolean;
   signedIn: boolean;
   onSave: (data: AccountData) => void;
   onMy: () => void;
-  onAdmin: () => void;
   cityName: (city: string) => string;
 };
 export default function AccountPanel({
   lang,
   headers,
   profile,
-  isAdmin,
   signedIn,
   onSave,
   onMy,
-  onAdmin,
   cityName,
 }: Props) {
   const t = (key: MessageKey) => messages[key][lang];
@@ -142,12 +137,6 @@ export default function AccountPanel({
                 <ArrowRight size={14} />
               </button>
             )}
-            {isAdmin && (
-              <button className="outline" onClick={onAdmin}>
-                <ShieldCheck size={15} />
-                {t("adminPanel")}
-              </button>
-            )}
             <a
               className="signout"
               href="/signout-with-chatgpt?return_to=/"
@@ -164,9 +153,6 @@ export default function AccountPanel({
               >
                 {t(suspended ? "suspendedStatus" : "activeStatus")}
               </span>
-              {isAdmin && (
-                <span className="status-badge admin">{t("administrator")}</span>
-              )}
               <small>
                 {t("memberSince")}{" "}
                 {new Date(profile.createdAt).toLocaleDateString(

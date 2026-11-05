@@ -1,0 +1,15 @@
+export const cityNames: Record<string, string[]> = {
+  Tashkent: ["Tashkent", "Ташкент", "Toshkent"],
+  Samarkand: ["Samarkand", "Самарканд", "Samarqand"],
+  Bukhara: ["Bukhara", "Бухара", "Buxoro"],
+  Andijan: ["Andijan", "Андижан", "Andijon"],
+  Namangan: ["Namangan", "Наманган", "Namangan"],
+  Fergana: ["Fergana", "Фергана", "Farg‘ona"],
+  Nukus: ["Nukus", "Нукус", "Nukus"],
+  Qarshi: ["Qarshi", "Карши", "Qarshi"],
+  Jizzakh: ["Jizzakh", "Джизак", "Jizzax"],
+  Navoi: ["Navoi", "Навои", "Navoiy"],
+  Termez: ["Termez", "Термез", "Termiz"],
+  Urgench: ["Urgench", "Ургенч", "Urganch"],
+  Gulistan: ["Gulistan", "Гулистан", "Guliston"],
+};

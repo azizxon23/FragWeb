@@ -74,30 +74,15 @@ test("Telegram auth rejects tampering, wrong tokens and stale sign-ins", async (
   );
   assert.equal(await validateTelegramInitData("invalid", token), null);
 });
-import { isAdministrator } from "../lib/permissions.ts";
+import { passwordHash, verifyPassword } from "../lib/admin-password.ts";
 import { errorMessages, errorText } from "../lib/errors.ts";
 import { validationIssue, profileInput } from "../lib/validation.ts";
-test("admin access requires a trusted ChatGPT identity and an explicit allowlist", () => {
-  assert.equal(
-    isAdministrator(
-      "chatgpt:owner",
-      "owner@example.test",
-      "OWNER@example.test",
-    ),
-    true,
-  );
-  assert.equal(
-    isAdministrator("telegram:123", "owner@example.test", "owner@example.test"),
-    false,
-  );
-  assert.equal(
-    isAdministrator("chatgpt:user", "user@example.test", "owner@example.test"),
-    false,
-  );
-  assert.equal(
-    isAdministrator("chatgpt:owner", "owner@example.test", ""),
-    false,
-  );
+test("admin passwords use salted verifiers and reject wrong passwords", async () => {
+  const hash = await passwordHash('test-only-password');
+  assert.notEqual(hash, await passwordHash('test-only-password'));
+  assert.equal(await verifyPassword('test-only-password', hash), true);
+  assert.equal(await verifyPassword('wrong-password', hash), false);
+  assert.equal(await verifyPassword('test-only-password', 'malformed'), false);
 });
 test("every validation error has Russian and Uzbek translations with limits", () => {
   for (const [code, texts] of Object.entries(errorMessages)) {

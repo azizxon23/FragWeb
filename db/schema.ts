@@ -66,3 +66,23 @@ export const auditLogs = sqliteTable(
   },
   (table) => [index("audit_created_idx").on(table.createdAt)],
 );
+
+// Administrative identities and sessions are separate from seller profiles.
+export const adminAccounts = sqliteTable('admin_accounts', {
+  email: text('email').primaryKey(),
+  passwordHash: text('password_hash').notNull(),
+  addedBy: text('added_by').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+export const adminSessions = sqliteTable('admin_sessions', {
+  tokenHash: text('token_hash').primaryKey(),
+  ownerId: text('owner_id').notNull(),
+  email: text('email').notNull(),
+  passwordVersion: text('password_version').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+});
+export const adminAttempts = sqliteTable('admin_attempts', {
+  ownerId: text('owner_id').primaryKey(),
+  attempts: integer('attempts').notNull(),
+  windowStart: integer('window_start').notNull(),
+});

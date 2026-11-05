@@ -6,6 +6,8 @@ import * as admin from "../../app/api/admin/route";
 import * as uploads from "../../app/api/uploads/route";
 import * as publicProfile from "../../app/api/profiles/[id]/route";
 import * as image from "../../app/api/images/[key]/route";
+import * as adminSession from "../../app/api/admin/session/route";
+import * as adminAccounts from "../../app/api/admin/accounts/route";
 import * as me from "../../app/api/me/route";
 const routes: Record<
   string,
@@ -14,6 +16,8 @@ const routes: Record<
   "/api/listings": listing,
   "/api/profile": profile,
   "/api/admin": admin,
+  "/api/admin/session": adminSession,
+  "/api/admin/accounts": adminAccounts,
   "/api/uploads": uploads,
   "/api/me": me,
 };

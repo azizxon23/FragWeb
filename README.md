@@ -4,7 +4,7 @@ A pre-owned perfume marketplace for Uzbekistan. The responsive website includes 
 
 ## Current state
 
-This is a working first version, published as an owner-private preview. Listings are stored in Cloudflare D1; photos are in R2. These are shared server resources, not browser storage. Only favorites and the language preference are stored on the visitor's device.
+This is a working marketplace with public browsing and a separate protected admin portal. Listings are stored in Cloudflare D1; photos are in R2. These are shared server resources, not browser storage. Only favorites and the language preference are stored on the visitor's device.
 
 An empty marketplace displays clearly labelled **sample listings** with bottle illustrations. These are not real offers, cannot be contacted, and are never inserted into the database. Actual listings require the seller's own photos, account sign-in, name, current city/region, Uzbek phone number, Telegram username, packaging, description, price, total volume, and remaining volume. Phone numbers and account identifiers are excluded from listing responses. Birthplace is not collected.
 
@@ -14,13 +14,15 @@ Buyers and sellers chat directly on Telegram. There is no in-site messaging, pay
 
 Open **My profile** from the person icon or footer, sign in, and save your seller details. A profile is required before uploading photos or publishing. Listing contact details are taken from the authenticated account, preventing seller impersonation. Profile edits are reflected in public listing contact details, including existing listings for that account.
 
-Open **Admin panel** from the shield icon or your profile. The panel provides registered-profile statistics, paginated search of users and listings, private contact details, reversible account suspension, listing visibility moderation, and an audit history with required reasons. Suspended sellers' listings and public profiles are hidden, and their upload, listing, and profile write APIs reject requests. Listing moderation preserves the seller's active/sold state.
+The marketplace lives at `/`; the separate dark administration portal lives at `/admin`. Public visitors can browse without signing in. Selling, uploads and profile changes require sign-in. Admin controls and badges never appear inside seller profiles.
 
-Administrative access is checked on every API request against the secret runtime variable `FRAGWEB_ADMIN_EMAILS`, a comma-separated list of trusted ChatGPT sign-in emails. The deployed preview is configured for the verified Site owner. The allowlist is not committed to Git, and users cannot assign roles through profile input. Access fails closed if the variable is absent. Telegram accounts are not administrators unless a separate explicit administrative identity design is added later.
+In `/admin`, verify your ChatGPT identity, then enter your administrative email and password. This creates a separate 8-hour HttpOnly, Secure, SameSite=Strict session bound to that verified identity. Marketplace login alone never grants administrative access. The owner email and PBKDF2 password verifier are configured as server runtime secrets `FRAGWEB_OWNER_EMAIL` and `FRAGWEB_OWNER_PASSWORD_HASH`. Missing configuration fails closed. The old `FRAGWEB_ADMIN_EMAILS` allowlist is no longer used. No admin password or verifier is committed to Git or sent to the browser.
 
-For **portable loopback development only**, put `FRAGWEB_ADMIN_EMAILS="seedy@sites.test"` into the ignored `.dev.vars` file if you want the starter's simulated local account to exercise the panel. Never use the development identity for a public deployment. The deployed allowlist does not sync into your local Git checkout.
+The portal includes user/listing search, private contact details, reversible suspension, listing visibility moderation, audit history, and **Administrators**. Administrators can add another verified email with an individual initial password (12–128 characters), or revoke access with a reason. Share initial passwords privately. Revocation invalidates existing sessions immediately. The owner cannot be removed and administrators cannot revoke their own access. Administrative accounts are separate database records from seller profiles; no seller profile is required for an admin identity. A login limit allows five attempts per verified identity in 15 minutes.
 
-Profiles appear in the administrator's user list after users save them; anonymous visitors and login-only accounts are not registered profiles. All administrator actions require a reason and write an audit row in the same database batch as the update. The owner account is protected from suspension.
+For **portable loopback development only**, configure the ignored `.dev.vars` with `FRAGWEB_OWNER_EMAIL` matching the starter's simulated identity and a test-only verifier produced by running `node scripts/admin-password-hash.mjs` (password input is hidden). Never use the simulated identity for a public deployment. Production runtime secrets do not sync through Git. To use the configured production owner on your Mac, use the hosted `/admin` URL.
+
+The admin panel lists saved seller profiles, not anonymous visitors or all accounts that merely signed in. All admin mutations include a reason and atomically log the change. Admin accounts are protected from suspension. Suspended profiles cannot write, and their public listings/profiles are hidden.
 
 Forms use application-owned validation with `noValidate`, so warning language follows the selected EN/RU/UZ language rather than the browser's locale. API failures carry stable codes and localized messages selected with `X-Fragweb-Language: en|ru|uz`. Error codes are translated again by the interface, so an existing error can be rendered in the current language. The server continues to validate all submitted data independently.
 
@@ -61,6 +63,7 @@ Apply each later migration once in order as well:
 ```bash
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_smiling_captain_marvel.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0002_bored_killmonger.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0003_cloudy_luke_cage.sql
 ```
 
 Do not replay migrations already applied. `git pull` updates source files; it does not install dependencies, migrate your local database, or deploy the hosted site.
@@ -103,7 +106,7 @@ A photo model would need a labelled image dataset, candidate confidence scores, 
 ## Source map
 
 - `app/page.tsx`: responsive marketplace and seller flows
-- `app/account-panel.tsx`, `app/admin-panel.tsx`: profiles and administrative controls
+- `app/account-panel.tsx`: seller profiles; `app/admin/`: separate dark admin portal; `app/admin-panel.tsx`: moderation controls
 - `app/api/profile`, `app/api/profiles`, `app/api/admin`: owner-scoped and public profile APIs, server-authorized management
 - `lib/errors.ts`, `lib/form-validation.ts`: localized errors and accessible client validation
 - `app/globals.css`: visual system and mobile layouts

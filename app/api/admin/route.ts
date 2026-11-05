@@ -1,9 +1,8 @@
-import { env } from "cloudflare:workers";
 import { getDb } from "@/db";
 import { profiles, listings, auditLogs } from "@/db/schema";
-import { and, eq, desc, count, or, like, sql } from "drizzle-orm";
+import { eq, desc, count, or, like, sql } from "drizzle-orm";
 import { access } from "@/lib/auth";
-import { adminEmails } from "@/lib/permissions";
+import { adminAccount } from "@/lib/admin-auth";
 import { adminAction, validationIssue } from "@/lib/validation";
 import { failure } from "@/lib/errors";
 export async function GET(request: Request) {
@@ -59,18 +58,15 @@ export async function GET(request: Request) {
         .orderBy(desc(profiles.createdAt))
         .limit(limit)
         .offset(offset);
-      const admins = adminEmails(
-        (env as unknown as Record<string, string>).FRAGWEB_ADMIN_EMAILS,
-      );
       return Response.json(
         {
           stats,
           total,
           page,
-          rows: rows.map(({ ownerId, ...r }) => ({
+          rows: await Promise.all(rows.map(async ({ ownerId, ...r }) => ({
             ...r,
-            isAdmin: admins.includes(r.email.toLowerCase()),
-          })),
+            isAdmin: !!await adminAccount(r.email.toLowerCase()),
+          }))),
         },
         { headers: { "Cache-Control": "no-store" } },
       );
@@ -157,9 +153,7 @@ export async function PATCH(request: Request) {
       if (!target) return failure(request, "notFound", 404);
       if (
         target.ownerId === auth.owner ||
-        adminEmails(
-          (env as unknown as Record<string, string>).FRAGWEB_ADMIN_EMAILS,
-        ).includes(target.email.toLowerCase())
+        !!await adminAccount(target.email.toLowerCase())
       )
         return failure(request, "protectAdmin", 403);
       await db.batch([

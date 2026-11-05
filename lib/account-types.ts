@@ -10,7 +10,7 @@ export type Profile = {
   createdAt: number;
   updatedAt: number;
 };
-export type AccountData = { profile: Profile | null; isAdmin: boolean };
+export type AccountData = { profile: Profile | null };
 export type PublicProfile = Pick<
   Profile,
   "id" | "displayName" | "telegram" | "city" | "bio" | "createdAt"

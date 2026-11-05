@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { actor, access, trustedEmail, isAdmin } from "@/lib/auth";
+import { actor, access, trustedEmail } from "@/lib/auth";
 import { failure } from "@/lib/errors";
 import { profileInput, validationIssue } from "@/lib/validation";
 export async function GET(request: Request) {
@@ -16,7 +16,6 @@ export async function GET(request: Request) {
     return Response.json(
       {
         profile: profile ? (({ ownerId, ...safe }) => safe)(profile) : null,
-        isAdmin: isAdmin(request, owner),
       },
       { headers: { "Cache-Control": "no-store" } },
     );
