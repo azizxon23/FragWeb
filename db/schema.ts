@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   sqliteTable,
   text,
@@ -53,7 +54,7 @@ export const profiles = sqliteTable(
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
-  (table) => [uniqueIndex("profiles_owner_unique").on(table.ownerId)],
+  (table) => [uniqueIndex("profiles_owner_unique").on(table.ownerId), uniqueIndex("profiles_email_unique").on(sql`lower(trim(${table.email}))`).where(sql`length(trim(${table.email})) > 0`)],
 );
 export const auditLogs = sqliteTable(
   "audit_logs",
@@ -103,4 +104,35 @@ export const loginAttempts = sqliteTable('login_attempts', {
   key: text('key').primaryKey(),
   attempts: integer('attempts').notNull(),
   windowStart: integer('window_start').notNull(),
+});
+
+export const externalIdentities = sqliteTable('external_identities', {
+  id: text('id').primaryKey(),
+  provider: text('provider').notNull(),
+  subject: text('subject').notNull(),
+  ownerId: text('owner_id').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, table => [uniqueIndex('external_identity_unique').on(table.provider,table.subject),uniqueIndex('external_owner_provider_unique').on(table.ownerId,table.provider)]);
+export const oauthFlows = sqliteTable('oauth_flows', {
+  stateHash: text('state_hash').primaryKey(),
+  browserHash: text('browser_hash').notNull(),
+  provider: text('provider').notNull(),
+  verifier: text('verifier').notNull(),
+  nonce: text('nonce').notNull(),
+  intent: text('intent').notNull(),
+  linkOwner: text('link_owner').notNull().default(''),
+  linkSessionHash: text('link_session_hash').notNull().default(''),
+  returnTo: text('return_to').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+});
+export const phoneChallenges = sqliteTable('phone_challenges', {
+  idHash: text('id_hash').primaryKey(),
+  phone: text('phone').notNull(),
+  verificationSid: text('verification_sid').notNull(),
+  intent: text('intent').notNull(),
+  linkOwner: text('link_owner').notNull().default(''),
+  linkSessionHash: text('link_session_hash').notNull().default(''),
+  returnTo: text('return_to').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  expiresAt: integer('expires_at').notNull(),
 });

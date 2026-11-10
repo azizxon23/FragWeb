@@ -12,9 +12,9 @@ Buyers and sellers chat directly on Telegram. There is no in-site messaging, pay
 
 ## Accounts, administrator access, and translated validation
 
-The public marketplace lives at `/`; **Log in / Sign up** opens `/account`. Registration creates a password and requires email ownership verification through the existing ChatGPT sign-in service. After signup, ordinary logins use email and password directly; a ChatGPT session alone never signs someone into the marketplace. Email values are trimmed and lowercased, and the database enforces one credential record per email and verified identity. Concurrent duplicate signups fail atomically without duplicate profiles. Passwords use salted PBKDF2 verifiers; cookies are Secure, HttpOnly and SameSite=Strict and expire after eight hours. Logout and expiry invalidate marketplace access. Login attempts are rate limited by email and edge IP.
+The public marketplace lives at `/`; **Log in / Sign up** opens `/account`. The email/password registration path creates a password and requires email ownership verification through the existing ChatGPT sign-in service. After password signup, ordinary logins use email and password directly; a ChatGPT session alone never signs someone into the marketplace. Optional Google/Gmail and Telegram sign-in use OIDC Authorization Code + PKCE, while optional phone sign-in uses SMS verification. External methods authenticate through the selected provider without requiring a separate marketplace password. Email values are trimmed and lowercased, and the database enforces one credential record per email and verified identity. Concurrent duplicate signups fail atomically without duplicate profiles. Passwords use salted PBKDF2 verifiers; cookies are Secure, HttpOnly and SameSite=Strict and expire after eight hours. Logout and expiry invalidate marketplace access. Login attempts are rate limited by email and edge IP.
 
-Existing passwordless profiles must use **Already had a profile without a password? Set one up**. Verify the original email, create and confirm a password, then log in normally. The setup path preserves the profile ID, listings and contacts, and cannot overwrite an existing password. A new signup using an existing profile/email is rejected. Marketplace and admin passwords/sessions are completely separate.
+Existing passwordless profiles must use **Already had a profile without a password? Set one up**. Verify the original email, create and confirm a password, then log in normally. The setup path preserves the profile ID, listings and contacts, and cannot overwrite an existing password. A new signup using an existing profile/email is rejected. Marketplace and admin passwords/sessions are completely separate. Phone input is never required for email/password, Google or Telegram login; only the explicitly selected SMS flow requests it. Seller-contact requirements are separate from login.
 
 Open **My profile** to save your seller details and choose a profile picture. New signups appear in the admin user list immediately, but need a valid phone/Telegram profile before selling. Avatars use R2 with an explicit upload purpose, ownership checks, a 5 MB limit and JPG/PNG/WebP signature validation. Save the profile to apply the chosen image. Public profiles expose the image and public details; private phone/email and credential/session records remain restricted. Images removed from a profile are detached, not deleted from shared storage.
 
@@ -31,6 +31,31 @@ The admin panel lists marketplace profiles, including new registrations with inc
 The owner-only **Remove approved test listing** control archives the exact inspected test offer, retains its photo for recovery, preserves all seller profiles/other listings/admins, cleans expired sessions and rate-limit windows, and writes an audit event. It is idempotent and refuses changed test data. The action requires an authenticated owner admin session; deployment itself never silently deletes marketplace records.
 
 Forms use application-owned validation with `noValidate`, so warning language follows the selected EN/RU/UZ language rather than the browser's locale. API failures carry stable codes and localized messages selected with `X-Fragweb-Language: en|ru|uz`. Error codes are translated again by the interface, so an existing error can be rendered in the current language. The server continues to validate all submitted data independently.
+
+## Optional sign-in provider activation
+
+The login and signup screens show Google/Gmail, Telegram and phone choices. Unconfigured providers are visibly unavailable; the app never fakes a successful login or SMS delivery. The `GET /api/auth/providers` response exposes only readiness booleans and the signed-in user's connected provider names, never identifiers or credentials. All provider secrets belong in hosted runtime settings (or the ignored `.dev.vars` for local development), never in Git.
+
+| Method | Runtime settings | External setup |
+| --- | --- | --- |
+| Google/Gmail | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Create a Google OAuth Web client, configure its consent screen, and register the Google callback below. |
+| Telegram | `TELEGRAM_CLIENT_ID`, `TELEGRAM_CLIENT_SECRET` | Create the FragWeb bot, obtain the Login Widget/OIDC client credentials in BotFather, and register the site and Telegram callback below. Keep the default RS256 algorithm. These OIDC credentials are separate from the bot API token. |
+| Phone / SMS | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | Configure a Twilio Verify service and enable delivery to the intended countries, including Uzbekistan. SMS has provider costs and trial restrictions. |
+
+Production callbacks:
+
+- `https://fragweb-market.tanhoneysuckle.chatgpt.site/api/auth/google/callback`
+- `https://fragweb-market.tanhoneysuckle.chatgpt.site/api/auth/telegram/callback`
+
+Use corresponding callbacks for every development/custom host and register those exact URLs externally. After adding runtime settings, deploy the saved/current version to apply them. Availability then updates automatically from the server. No provider keys are currently configured in production.
+
+OAuth requests are same-origin POSTs, with a ten-minute, one-use, browser-bound state record, nonce validation, PKCE and fixed provider endpoints. ID-token signatures, issuer, audience, authorized party, expiry, subject, nonce and (for Google) verified email are validated on the server using `jose`. Telegram requests only `openid profile`, without mandatory phone or bot-message permissions. Access/refresh tokens are not retained. The original Sites identity integration remains in place for admin login and the original email-password verification flow.
+
+SMS requests enforce international-number formatting, a browser-bound ten-minute challenge, a resend cooldown, phone/IP quotas and a maximum of five checks. The code is checked by Twilio against the specific verification ID; the server requires an approved result matching the number and service. Verification is consumed once before issuing a marketplace session. The app never stores or logs SMS codes. Test suites mock provider traffic; they never send real messages.
+
+New external registrations create ordinary User profiles. Logging in with an unknown external identity does not silently create a new account. Matching email/phone information is not automatically merged: log into the original account, open **My profile**, and connect the additional method explicitly. Linking is bound to the original password/provider session, and logging out invalidates in-flight linking. The database uniquely constrains provider subjects, one identity per provider per profile, and normalized nonempty profile emails. Multiple phone/Telegram-only accounts may have no email; a phone is not requested by Google/Telegram flows. The admin role is never inferred from an external email or phone.
+
+References: [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect), [Telegram Login](https://core.telegram.org/bots/telegram-login), [Twilio Verify](https://www.twilio.com/docs/verify/api).
 
 ## Open in VS Code and Codex
 
@@ -71,6 +96,7 @@ node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0002_bored_killmonger.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0003_cloudy_luke_cage.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0004_slow_selene.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0005_moaning_meteorite.sql
 ```
 
 Do not replay migrations already applied. `git pull` updates source files; it does not install dependencies, migrate your local database, or deploy the hosted site.
@@ -132,6 +158,7 @@ A photo model would need a labelled image dataset, candidate confidence scores, 
 npx tsc --noEmit
 node --experimental-strip-types --test tests/domain.test.mjs
 node --test tests/api.test.mjs
+node --test tests/providers.test.mjs
 npm run build
 ```
 

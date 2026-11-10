@@ -9,8 +9,8 @@ export function marketToken(request: Request) { return request.headers.get('cook
 export async function marketSession(request: Request) {
   const token = marketToken(request);
   if (!/^[a-f0-9]{64}$/.test(token)) return null;
-  const row = await getDb().select({ owner: marketplaceSessions.ownerId, email: marketplaceAccounts.email })
-    .from(marketplaceSessions).innerJoin(marketplaceAccounts,eq(marketplaceAccounts.ownerId,marketplaceSessions.ownerId))
+  const row = await getDb().select({ owner: marketplaceSessions.ownerId, email: profiles.email })
+    .from(marketplaceSessions).innerJoin(profiles,eq(profiles.ownerId,marketplaceSessions.ownerId))
     .where(and(eq(marketplaceSessions.tokenHash,await digest(token)),gt(marketplaceSessions.expiresAt,Date.now()))).get();
   // Status is checked by access(); keep read access to one's suspended profile for explanation.
   return row || null;

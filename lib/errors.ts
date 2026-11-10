@@ -140,11 +140,19 @@ export const errorMessages = {
   accountExists: ["An account already exists. Use Log in instead of creating another account.", "Аккаунт уже существует. Используйте вход, не создавайте второй аккаунт.", "Akkaunt allaqachon mavjud. Yangisini yaratish o‘rniga tizimga kiring."],
   existingSetup: ["This email already has a profile. Use password setup to keep your existing profile.", "У этого email уже есть профиль. Создайте пароль для существующего профиля.", "Bu emailda profil mavjud. Mavjud profilni saqlash uchun unga parol o‘rnating."],
   loginInput: ["Enter a valid email and a password of 12–128 characters.", "Введите корректный email и пароль из 12–128 символов.", "To‘g‘ri email va 12–128 belgili parol kiriting."],
+  providerUnavailable: ["This sign-in method is not available yet. Use email and password.", "Этот способ входа пока недоступен. Используйте email и пароль.", "Bu kirish usuli hali mavjud emas. Email va paroldan foydalaning."],
+  providerAuthFailed: ["Sign-in could not be verified. Start again and try once more.", "Не удалось подтвердить вход. Начните заново и повторите.", "Kirishni tasdiqlab bo‘lmadi. Boshidan qayta urinib ko‘ring."],
+  accountLinkRequired: ["An account already uses these details. Log in with your original method, then connect the new method from My profile.", "Эти данные уже используются. Войдите прежним способом и подключите новый в разделе «Мой профиль».", "Bu ma’lumotlar bilan akkaunt mavjud. Avvalgi usulda kirib, «Profilim» bo‘limida yangi usulni ulang."],
+  providerAccountMissing: ["No account is connected to this method. Choose Create account, or log in with your original method and connect it from My profile.", "К этому способу не привязан аккаунт. Создайте аккаунт или войдите прежним способом и подключите его в «Моём профиле».", "Bu usulga akkaunt ulanmagan. Akkaunt yarating yoki avvalgi usulda kirib «Profilim» orqali ulang."],
+  phoneInternational: ["Enter an international phone number starting with +, such as +998901234567.", "Введите международный номер с +, например +998901234567.", "+ bilan boshlanadigan xalqaro raqamni kiriting, masalan +998901234567."],
+  smsSendFailed: ["The verification code could not be sent. Please try again later.", "Не удалось отправить код. Попробуйте позже.", "Tasdiqlash kodini yuborib bo‘lmadi. Keyinroq qayta urining."],
+  smsCode: ["The code is incorrect, expired, or has too many attempts. Request a new code.", "Код неверный, просрочен или исчерпаны попытки. Запросите новый код.", "Kod noto‘g‘ri, muddati tugagan yoki urinishlar limiti tugagan. Yangi kod so‘rang."],
+  smsCooldown: ["Wait one minute before requesting another SMS.", "Подождите минуту перед повторной отправкой SMS.", "Yana SMS so‘rashdan oldin bir daqiqa kuting."],
 } as const;
 export type ErrorCode = keyof typeof errorMessages;
 export type ErrorInfo = { code: ErrorCode; field?: string; limit?: number };
 export function languageIndex(request: Request) {
-  const value = request.headers.get("x-fragweb-language") || "en";
+  const value = request.headers.get("x-fragweb-language") || new URL(request.url).searchParams.get("lang") || "en";
   return value === "ru" ? 1 : value === "uz" ? 2 : 0;
 }
 export function errorText(info: ErrorInfo, lang: number) {

@@ -19,6 +19,8 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 - Marketplace `/` and dark admin portal `/admin` are separate experiences. Never put admin controls or badges in seller profiles.
 - Admin APIs require a separate HttpOnly password session bound to verified ChatGPT identity. The protected owner uses FRAGWEB_OWNER_EMAIL and FRAGWEB_OWNER_PASSWORD_HASH runtime secrets; additional administrative identities live in admin_accounts, separate from profiles. Admins may add/revoke other admins with required audit reasons. Never expose hashes, grant access from a claimed email, remove the protected owner, or make the first registrant an admin.
 - Marketplace credentials live in marketplace_accounts, with normalized unique emails and verified identity keys. Signup, legacy password setup and login are distinct; only initial setup uses trusted email verification. Native marketplace writes require its separate password session, never only a platform/admin session. New signup creates a User profile without admin privileges.
+- Optional Google/Gmail and Telegram sign-in use server-validated OIDC + PKCE; SMS uses provider-verified one-time codes. Never activate unconfigured methods or claim they work without credentials. Keep phone optional unless the SMS method is selected.
+- external_identities are linked only through an explicit authenticated flow. Never merge based only on claimed identifiers, reuse an identity across profiles, or infer admin status from a provider account. Market sessions belong to profiles, including external profiles with no marketplace password.
 - Admin password sessions expire after 8 hours; revocation invalidates sessions immediately. Keep login rate limits, same-origin checks, and server enforcement. Public browsing is anonymous; uploads, selling and profile writes require verified identity.
 - User-detail APIs require admin authorization; never return password hashes or tokens. Label marketplace profiles as User and keep admin identities in the separate Administrators section.
 - Avatars require upload purpose and ownership validation, valid image types and size limits.
@@ -34,6 +36,7 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 npx tsc --noEmit
 node --experimental-strip-types --test tests/domain.test.mjs
 node --test tests/api.test.mjs
+node --test tests/providers.test.mjs
 npm run build
 ```
 

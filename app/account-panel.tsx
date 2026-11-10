@@ -1,4 +1,5 @@
 "use client";
+import ProviderChoices from "./provider-choices";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -137,6 +138,7 @@ export default function AccountPanel({
         </a>
       ) : (
         <>
+          <ProviderChoices lang={lang} intent="link"/>
           <div className="account-links">
             {profile && (
               <button className="outline" onClick={onMy}>
