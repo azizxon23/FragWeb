@@ -1,4 +1,5 @@
 "use client";
+import ListingDetails from "./listing-details";
 import UserDetails from "./user-details";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -78,6 +79,7 @@ export default function AdminPanel({
     [notice, setNotice] = useState(false),
     [refresh, setRefresh] = useState(0);
   const [selectedUser,setSelectedUser]=useState<string|null>(null);
+  const [selectedListing,setSelectedListing]=useState<string|null>(null);
   const counter = useRef(0);
   useEffect(() => {
     const request = ++counter.current;
@@ -147,6 +149,7 @@ export default function AdminPanel({
       : "—";
   return (
     <>
+      {selectedListing && <ListingDetails key={selectedListing} id={selectedListing} lang={lang} headers={headers} cityName={cityName} onClose={()=>setSelectedListing(null)} onUser={setSelectedUser}/>}
       {selectedUser && <UserDetails key={selectedUser} id={selectedUser} lang={lang} headers={headers} cityName={cityName} onClose={()=>setSelectedUser(null)}/>}
       <div className="admin-heading">
         <span className="modal-icon">
@@ -278,7 +281,7 @@ export default function AdminPanel({
         ) : (
           !error &&
           data?.rows.map((row) => (
-            <article className={"admin-record"+(section==="users"?" clickable-user":"")} key={row.id} onClick={e=>{if(section==="users" && !(e.target as HTMLElement).closest("button,a"))setSelectedUser(row.id);}}>
+            <article className={"admin-record"+(section!=="audit"?" clickable-user":"")} key={row.id} onClick={e=>{if(!(e.target as HTMLElement).closest("button,a")){if(section==="users")setSelectedUser(row.id);if(section==="listings")setSelectedListing(row.id);}}}>
               {section === "users" ? (
                 <>
                   <div className="record-top">
@@ -359,7 +362,7 @@ export default function AdminPanel({
                   <div className="record-top">
                     <div>
                       <span className="eyebrow">{row.brand}</span>
-                      <h3>{row.name}</h3>
+                      <h3><button className="admin-user-open" onClick={()=>setSelectedListing(row.id)}>{row.name}</button></h3>
                       <span
                         className={
                           row.moderationStatus === "hidden"

@@ -27,6 +27,7 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 - Cleanup archives only the specifically approved test listing, preserves other profiles/listings and requires the owner admin session. Never reset the database for a cleanup request.
 - Keep all private contact data out of public profile/listing responses. Admin and owner endpoints may expose only the data appropriate for that role.
 - Suspended profiles must be excluded from public listings and must be blocked from write actions, including uploads.
+- Likes/comments use D1 and marketplace sessions, never device-only state or admin identity. One like per profile/listing; public activity excludes hidden/deleted comments and suspended authors. Comment deletion enforces author ownership in SQL. Admin comment moderation requires a reason and atomic audit.
 - Admin mutations must include a reason and atomically record an audit event. Preserve the owner suspension guard.
 - User-visible errors must use stable codes from lib/errors.ts and be localized in EN/RU/UZ. Browser-language validation popovers are disabled; never remove server validation.
 
@@ -37,6 +38,7 @@ npx tsc --noEmit
 node --experimental-strip-types --test tests/domain.test.mjs
 node --test tests/api.test.mjs
 node --test tests/providers.test.mjs
+node --test tests/engagement.test.mjs
 npm run build
 ```
 

@@ -22,6 +22,7 @@ import {
   User,
   ExternalLink,
 } from "lucide-react";
+import ListingActivity from "./listing-activity";
 import { catalog, demos, identify, type Listing } from "@/lib/catalog";
 import { messages, type MessageKey } from "@/lib/i18n";
 import {
@@ -877,6 +878,7 @@ export default function Home() {
                         {cn(p.city)}
                       </span>
                     </div>
+                    {!p.demo && <div className="product-activity"><span>{p.likeCount||0} {t("likes")}</span><span><MessageCircle size={13}/> {p.commentCount||0} {t("comments")}</span></div>}
                     {view === "my" &&
                       (p.status === "sold" ? (
                         <span className="sold">{t("sold")}</span>
@@ -1074,6 +1076,8 @@ export default function Home() {
                   <ArrowUpRight size={17} />
                 </a>
               )}
+              {!selected.demo && selected.status!=="active" && <p className="fine-print">{t("engagementReadOnly")}</p>}
+              {!selected.demo && selected.status==="active" && <ListingActivity key={selected.id} id={selected.id} lang={lang} headers={headers} signedIn={signedIn} onCounts={(likeCount,commentCount)=>setItems(rows=>rows.map(row=>row.id===selected.id?{...row,likeCount,commentCount}:row))}/>}
               <p className="fine-print">{t("note")}</p>
             </>
           ) : modal === "sell" ? (

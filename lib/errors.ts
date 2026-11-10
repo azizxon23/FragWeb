@@ -1,4 +1,6 @@
 export const errorMessages = {
+  commentLength: ['Enter a comment of 1–1000 characters.', 'Введите комментарий длиной 1–1000 символов.', '1–1000 belgidan iborat izoh yozing.'],
+
   required: [
     "Please fill in this field.",
     "Заполните это поле.",

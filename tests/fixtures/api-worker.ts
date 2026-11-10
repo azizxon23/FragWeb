@@ -1,5 +1,7 @@
 // Test-only Worker: synthetic identity headers simulate trusted Sites dispatch.
 // This entrypoint is never deployed by the application or the Sites build.
+import * as activity from "../../app/api/listings/[id]/activity/route";
+import * as adminListing from "../../app/api/admin/listings/[id]/route";
 import * as listing from "../../app/api/listings/route";
 import * as profile from "../../app/api/profile/route";
 import * as admin from "../../app/api/admin/route";
@@ -35,6 +37,8 @@ const routes: Record<
 export default {
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
+    const engagement=path.match(/^\/api\/listings\/([^/]+)\/activity$/), detail=path.match(/^\/api\/admin\/listings\/([^/]+)$/);
+    if(engagement||detail){const match=(engagement||detail)!,handlers=(engagement?activity:adminListing) as Record<string,Function>;return handlers[request.method]?.(request,{params:Promise.resolve({id:match[1]})})||new Response('Method not allowed',{status:405});}
     const oauth=path.match(/^\/api\/auth\/(google|telegram)\/(start|callback)$/);
     if(oauth) {const params={params:Promise.resolve({provider:oauth[1]})};return oauth[2]==='start'&&request.method==='POST'?oauthStart.POST(request,params):oauth[2]==='callback'&&request.method==='GET'?oauthCallback.GET(request,params):new Response('Method not allowed',{status:405});}
     if (path.startsWith("/api/admin/users/")) return adminUser.GET(request,{params:Promise.resolve({id:path.split("/").pop()!})});

@@ -1,6 +1,6 @@
 import { getDb } from "@/db";
 import { listings, profiles } from "@/db/schema";
-import { desc, eq, ne, and, or, isNull } from "drizzle-orm";
+import { sql, desc, eq, ne, and, or, isNull } from "drizzle-orm";
 import { actor, access } from "@/lib/auth";
 import { listingInput, profileInput, validationIssue } from "@/lib/validation";
 import { failure } from "@/lib/errors";
@@ -13,6 +13,8 @@ export async function GET(request: Request) {
     const rows = await getDb()
       .select({
         listing: listings,
+        likeCount: sql<number>`(SELECT count(*) FROM listing_likes k JOIN profiles p ON p.owner_id=k.owner_id WHERE k.listing_id=${listings.id} AND p.status='active')`,
+        commentCount: sql<number>`(SELECT count(*) FROM listing_comments c JOIN profiles p ON p.owner_id=c.owner_id WHERE c.listing_id=${listings.id} AND c.status='visible' AND p.status='active')`,
         profileId: profiles.id,
         displayName: profiles.displayName,
         city: profiles.city,
@@ -35,13 +37,13 @@ export async function GET(request: Request) {
       rows.map(
         ({
           listing: { phone, ownerId, ...r },
-          profileId,
+          likeCount, commentCount, profileId,
           displayName,
           city,
           telegram,
         }) => ({
           ...r,
-          profileId,
+          likeCount, commentCount, profileId,
           seller: displayName || r.seller,
           city: city || r.city,
           telegram: telegram || r.telegram,

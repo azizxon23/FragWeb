@@ -136,3 +136,19 @@ export const phoneChallenges = sqliteTable('phone_challenges', {
   attempts: integer('attempts').notNull().default(0),
   expiresAt: integer('expires_at').notNull(),
 });
+
+// Public engagement belongs to marketplace profiles, never administrative identities.
+export const listingLikes = sqliteTable('listing_likes', {
+  id: text('id').primaryKey(),
+  listingId: text('listing_id').notNull().references(() => listings.id),
+  ownerId: text('owner_id').notNull().references(() => profiles.ownerId),
+  createdAt: integer('created_at').notNull(),
+}, table => [uniqueIndex('listing_likes_unique').on(table.listingId, table.ownerId)]);
+export const listingComments = sqliteTable('listing_comments', {
+  id: text('id').primaryKey(),
+  listingId: text('listing_id').notNull().references(() => listings.id),
+  ownerId: text('owner_id').notNull().references(() => profiles.ownerId),
+  body: text('body').notNull(),
+  status: text('status').notNull().default('visible'),
+  createdAt: integer('created_at').notNull(),
+}, table => [index('listing_comments_page_idx').on(table.listingId, table.createdAt, table.id)]);

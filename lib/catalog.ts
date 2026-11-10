@@ -148,6 +148,8 @@ export type Listing = {
   photos: string[];
   status: string;
   createdAt: number;
+  likeCount?: number;
+  commentCount?: number;
   demo?: boolean;
   profileId?: string | null;
   moderationStatus?: string;

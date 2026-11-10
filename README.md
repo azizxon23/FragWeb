@@ -177,3 +177,19 @@ On Sites, ChatGPT identity headers are injected by the trusted dispatch layer. O
 ## Assets
 
 Hero photograph: https://images.unsplash.com/photo-1541643600914-78b084683601 (Unsplash). Sample bottle illustrations are authored SVG, not seller photographs. Fonts: DM Sans, Manrope, Playfair Display (Google Fonts).
+
+## Listing likes, comments, and administrative review
+
+Active, visible listings accept likes and comments from signed-in marketplace users, including accounts without a phone number. D1 stores this activity across devices. Hearts still save favorites on the current device; the separate Like button records a public like. One profile can like a listing once, and clicking again removes its like. Comments are plain text, trimmed to 1–1000 characters, and authors can delete their own comments. Deletion clears the text and cannot be undone by administrators. Likes are limited to 120 requests and comments to 20 posts per account per 15 minutes.
+
+Anonymous visitors can read counts and comments. Public responses contain display names, avatars and public profile IDs, with no private phone/email or authentication IDs. Suspended authors, hidden/deleted comments and inaccessible listings do not expose public activity. Sold/archived listings stop accepting engagement. Comment pages contain 20 records ordered by creation time and ID.
+
+In the dark admin portal, click a listing name or its card to open a native detail dialog with photos, description, price, volume, condition, seller information, paginated likes and comments. Click a seller, liker or commenter to open the existing User details dialog. Administrators can hide/restore comments with a required reason; the update and audit event are atomic. Deleted comments cannot be restored. Administrative and marketplace sessions remain separate.
+
+Migration: `drizzle/0006_purple_vengeance.sql` appends the two engagement tables and indexes without changing existing records. Hosted deployment applies it automatically. Local setups should apply only unapplied migrations using the D1 command above and this filename. Additional verification: `node --test tests/engagement.test.mjs`.
+
+## GitHub Pages and D1
+
+GitHub Pages serves static files. A static frontend can call a separately deployed Cloudflare Worker API backed by D1, but D1 bindings and secrets stay on the Worker. This Vinext application currently deploys its server routes, secure same-origin authentication, D1 and R2 together on Cloudflare Workers; it is not a static Pages export. Moving the frontend alone would require a planned API/authentication migration. GitHub Pages also excludes sites primarily facilitating commercial transactions, so it is not enabled for FragWeb. Keep source in GitHub and use a Cloudflare Workers deployment, optionally connected to GitHub builds, for independent hosting.
+
+References: [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits), [Cloudflare D1](https://developers.cloudflare.com/d1/get-started/).

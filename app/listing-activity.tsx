@@ -1,0 +1,32 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { ThumbsUp, MessageCircle } from 'lucide-react';
+import { messages, type MessageKey } from '@/lib/i18n';
+import { apiJson,errorInfo,errorText,type ErrorInfo } from '@/lib/errors';
+import type { ApiHeaders } from '@/lib/account-types';
+export type ActivityData={likeCount:number;commentCount:number;liked:boolean;page:number;comments:{id:string;body:string;status:string;createdAt:number;profileId:string;displayName:string;avatar:string;mine:boolean;authorStatus?:string}[];likers?:{profileId:string;displayName:string;avatar:string;authorStatus:string}[]};
+export default function ListingActivity({id,lang,headers,signedIn=false,admin=false,initial,onUser,onCounts}:{id:string;lang:number;headers:ApiHeaders;signedIn?:boolean;admin?:boolean;initial?:ActivityData;onUser?:(id:string)=>void;onCounts?:(likes:number,comments:number)=>void}){
+  const [data,setData]=useState<ActivityData|null>(initial||null),[page,setPage]=useState(1),[body,setBody]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState<ErrorInfo|null>(null),[pending,setPending]=useState<{id:string;status:string}|null>(null),[reason,setReason]=useState('');
+  const t=(key:MessageKey)=>messages[key][lang],url=admin?'/api/admin/listings/'+encodeURIComponent(id):'/api/listings/'+encodeURIComponent(id)+'/activity';
+  useEffect(()=>{if(page===1&&initial){setData(initial);return;}const abort=new AbortController();setData(null);setError(null);fetch(url+'?page='+page,{headers:headers(),cache:'no-store',signal:abort.signal}).then(apiJson<ActivityData>).then(setData).catch(e=>{if(!abort.signal.aborted)setError(errorInfo(e));});return()=>abort.abort();},[id,page]);
+  async function write(method:string,payload:unknown){
+    if(busy)return;setBusy(true);setError(null);
+    try {const result=await apiJson<ActivityData>(await fetch(url,{method,headers:{...headers(),'Content-Type':'application/json','x-fragweb-language':['en','ru','uz'][lang]},body:JSON.stringify(payload)}));
+      if(admin){setData(await apiJson<ActivityData>(await fetch(url+'?page='+page,{headers:headers(),cache:'no-store'})));setPending(null);setReason('');}
+      else{setData(result);setPage(1);setBody('');onCounts?.(result.likeCount,result.commentCount);}
+    }catch(e){setError(errorInfo(e));}finally{setBusy(false);}
+  }
+  const user=(p:{displayName:string;profileId:string;avatar:string})=><span className="activity-author">{p.avatar&&<img src={p.avatar} alt="" className="user-avatar small"/>}{admin&&onUser?<button type="button" className="admin-user-open" onClick={()=>onUser(p.profileId)}>{p.displayName}</button>:<strong>{p.displayName}</strong>}</span>;
+  return <section className="listing-activity" aria-label={t('comments')}>
+    <div className="activity-summary">{!admin&&signedIn?<button type="button" className={'outline '+(data?.liked?'is-liked':'')} aria-pressed={!!data?.liked} aria-label={t(data?.liked?'unlikeListing':'likeListing')} disabled={busy||!data} onClick={()=>write('PUT',{liked:!data?.liked})}><ThumbsUp size={17}/>{data?.likeCount??0} {t('likes')}</button>:<span><ThumbsUp size={17}/>{data?.likeCount??'…'} {t('likes')}</span>}<span><MessageCircle size={17}/>{data?.commentCount??'…'} {t('comments')}</span></div>
+    {error&&<p className="notice error" role="alert">{errorText(error,lang)}</p>}
+    {!data&&!error&&<p role="status">{t('loading')}</p>}
+    {admin&&data?.likers&&<div className="activity-likers"><h3>{t('likes')}</h3>{data.likers.length===0?<p>{t('noRecords')}</p>:data.likers.map(p=><div key={p.profileId}>{user(p)}{p.authorStatus==='suspended'&&<span className="status-badge danger">{t('suspendedStatus')}</span>}</div>)}</div>}
+    <h3>{t('comments')}</h3>
+    {data&&data.comments.length===0&&<p className="fine-print">{t('noComments')}</p>}
+    <ul className="activity-comments">{data?.comments.map(c=><li key={c.id}>{user(c)}<small>{new Date(c.createdAt).toLocaleString(['en-GB','ru-RU','uz-UZ'][lang])}</small>{admin&&<span className="status-badge">{t(c.status==='deleted'?'deletedComment':c.status==='hidden'?'hidden':'visible')}</span>}{admin&&c.authorStatus==='suspended'&&<span className="status-badge danger">{t('suspendedStatus')}</span>}<p>{c.body}</p>{admin&&c.status!=='deleted'?<button type="button" className="outline" disabled={busy} onClick={()=>{setPending({id:c.id,status:c.status==='hidden'?'visible':'hidden'});setReason('');}}>{t(c.status==='hidden'?'restoreComment':'hideComment')}</button>:!admin&&!!c.mine&&<button type="button" className="outline" disabled={busy} onClick={()=>write('DELETE',{commentId:c.id})}>{t('deleteComment')}</button>}</li>)}</ul>
+    {data&&Math.max(data.commentCount,admin?data.likeCount:0)>20&&<div className="pagination"><button type="button" className="outline" disabled={page===1||busy} onClick={()=>setPage(page-1)}>{t('previous')}</button><span>{t('page')} {page} / {Math.ceil(Math.max(data.commentCount,admin?data.likeCount:0)/20)}</span><button type="button" className="outline" disabled={page*20>=Math.max(data.commentCount,admin?data.likeCount:0)||busy} onClick={()=>setPage(page+1)}>{t('next')}</button></div>}
+    {admin&&pending&&<form className="moderation-confirm" noValidate onSubmit={e=>{e.preventDefault();if(reason.trim().length<5||reason.trim().length>300){setError({code:'reason'});return;}write('PATCH',{commentId:pending.id,status:pending.status,reason});}}><h3>{t(pending.status==='hidden'?'hideComment':'restoreComment')}</h3><label className="field">{t('reason')}<textarea value={reason} disabled={busy} minLength={5} maxLength={300} onChange={e=>setReason(e.target.value)}/></label><div className="form-actions"><button type="button" className="outline" disabled={busy} onClick={()=>setPending(null)}>{t('cancel')}</button><button type="submit" className="primary" disabled={busy}>{t(busy?'saving':'confirm')}</button></div></form>}
+    {!admin&&(signedIn?<form noValidate onSubmit={e=>{e.preventDefault();if(!body.trim()||body.trim().length>1000){setError({code:'commentLength'});return;}write('POST',{body});}}><label className="field">{t('commentPlaceholder')}<textarea value={body} disabled={busy} maxLength={1000} rows={3} onChange={e=>setBody(e.target.value)}/></label><button type="submit" className="primary" disabled={busy||!data}>{t(busy?'saving':'postComment')}</button></form>:<a className="outline" href="/account?returnTo=%2F">{t('engagementLogin')}</a>)}
+  </section>;
+}
