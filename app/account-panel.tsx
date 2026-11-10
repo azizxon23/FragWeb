@@ -43,10 +43,17 @@ export default function AccountPanel({
     telegram: profile?.telegram || "",
     city: profile?.city || "Tashkent",
     bio: profile?.bio || "",
+    avatar: profile?.avatar || "",
   });
   const [errors, setErrors] = useState<Record<string, ErrorInfo>>({}),
     [error, setError] = useState<ErrorInfo | null>(null),
     [busy, setBusy] = useState(false);
+  async function uploadAvatar(file: File | undefined) {
+    if(!file || busy)return;
+    if(file.size>5*1024*1024){setError({code:'photoSize'});return;}
+    setBusy(true);setError(null);
+    try{const body=new FormData();body.set('photo',file);const data=await apiJson<{url:string}>(await fetch('/api/uploads?purpose=avatar',{method:'POST',headers:headers(),body}));setValues(v=>({...v,avatar:data.url}));}catch(e){setError(errorInfo(e));}finally{setBusy(false);}
+  }
   const suspended = profile?.status === "suspended";
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,10 +129,10 @@ export default function AccountPanel({
       {!signedIn ? (
         <a
           className="primary full"
-          href="/signin-with-chatgpt?return_to=%2F%3Fprofile%3D1"
+          href="/account"
           target="_top"
         >
-          {t("signinBtn")}
+          {t("loginOrRegister")}
           <ArrowRight size={17} />
         </a>
       ) : (
@@ -137,14 +144,7 @@ export default function AccountPanel({
                 <ArrowRight size={14} />
               </button>
             )}
-            <a
-              className="signout"
-              href="/signout-with-chatgpt?return_to=/"
-              target="_top"
-            >
-              <LogOut size={13} />
-              {t("signOut")}
-            </a>
+            <button className="signout" disabled={busy} onClick={async()=>{setBusy(true);setError(null);try{await apiJson(await fetch('/api/account',{method:'DELETE',headers:{'Content-Type':'application/json',...headers()}}));window.location.assign('/');}catch(e){setError(errorInfo(e));setBusy(false);}}}><LogOut size={13}/>{t('signOut')}</button>
           </div>
           {profile && (
             <div className="account-badges">
@@ -168,6 +168,7 @@ export default function AccountPanel({
           )}
           <form onSubmit={save} noValidate>
             <fieldset disabled={busy || suspended}>
+              <div className="profile-photo-editor"><div>{values.avatar?<img className="user-avatar" src={values.avatar} alt={values.displayName}/>:<span className="user-avatar placeholder"><User size={28}/></span>}</div><div><label className="field">{t('profilePhoto')}<input type="file" accept="image/jpeg,image/png,image/webp" aria-label={t('choosePhoto')} onChange={e=>{uploadAvatar(e.target.files?.[0]);e.target.value='';}}/></label><small>{t('avatarPhotoHelp')}</small>{values.avatar&&<button className="text-button" type="button" onClick={()=>setValues(v=>({...v,avatar:''}))}>{t('avatarRemovePhoto')}</button>}</div></div>
               <div className="form-grid">
                 {field("displayName", "name", { minLength: 2, maxLength: 70 })}
                 <label className="field">
@@ -231,7 +232,7 @@ export function SellerProfile({
   const t = (key: MessageKey) => messages[key][lang];
   return (
     <>
-      <div className="profile-avatar">{profile.displayName[0]}</div>
+      <div className="profile-avatar">{profile.avatar?<img className="user-avatar" src={profile.avatar} alt={profile.displayName}/>:profile.displayName[0]}</div>
       <div className="eyebrow">{t("publicProfile")}</div>
       <h2 id="dialog-title">{profile.displayName}</h2>
       <div className="detail-specs">

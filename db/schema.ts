@@ -48,6 +48,7 @@ export const profiles = sqliteTable(
     telegram: text("telegram").notNull(),
     city: text("city").notNull(),
     bio: text("bio").notNull().default(""),
+    avatar: text("avatar").notNull().default(""),
     status: text("status").notNull().default("active"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
@@ -83,6 +84,23 @@ export const adminSessions = sqliteTable('admin_sessions', {
 });
 export const adminAttempts = sqliteTable('admin_attempts', {
   ownerId: text('owner_id').primaryKey(),
+  attempts: integer('attempts').notNull(),
+  windowStart: integer('window_start').notNull(),
+});
+
+export const marketplaceAccounts = sqliteTable('marketplace_accounts', {
+  ownerId: text('owner_id').primaryKey(),
+  email: text('email').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, table => [uniqueIndex('marketplace_accounts_email_unique').on(table.email)]);
+export const marketplaceSessions = sqliteTable('marketplace_sessions', {
+  tokenHash: text('token_hash').primaryKey(),
+  ownerId: text('owner_id').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+}, table => [index('marketplace_sessions_owner_idx').on(table.ownerId)]);
+export const loginAttempts = sqliteTable('login_attempts', {
+  key: text('key').primaryKey(),
   attempts: integer('attempts').notNull(),
   windowStart: integer('window_start').notNull(),
 });

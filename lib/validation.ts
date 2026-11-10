@@ -24,6 +24,7 @@ export const profileInput = z.object({
     .regex(/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/),
   city: z.enum(cityValues),
   bio: z.string().trim().max(500).default(""),
+  avatar: z.union([z.literal(""), z.string().regex(/^\/api\/images\/[a-f0-9-]+\.(jpg|png|webp)$/)]).default(""),
 });
 export const listingInput = z
   .object({

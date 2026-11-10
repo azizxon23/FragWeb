@@ -65,7 +65,8 @@ export async function GET(request: Request) {
           page,
           rows: await Promise.all(rows.map(async ({ ownerId, ...r }) => ({
             ...r,
-            isAdmin: !!await adminAccount(r.email.toLowerCase()),
+            role: "user",
+            protectedAccount: !!await adminAccount(r.email.toLowerCase()),
           }))),
         },
         { headers: { "Cache-Control": "no-store" } },

@@ -5,6 +5,7 @@ export type Profile = {
   telegram: string;
   city: string;
   bio: string;
+  avatar: string;
   email: string;
   status: string;
   createdAt: number;
@@ -13,6 +14,6 @@ export type Profile = {
 export type AccountData = { profile: Profile | null };
 export type PublicProfile = Pick<
   Profile,
-  "id" | "displayName" | "telegram" | "city" | "bio" | "createdAt"
+  "id" | "displayName" | "telegram" | "city" | "bio" | "avatar" | "createdAt"
 > & { listingCount: number };
 export type ApiHeaders = () => Record<string, string>;

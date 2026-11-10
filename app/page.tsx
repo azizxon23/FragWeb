@@ -356,7 +356,7 @@ export default function Home() {
     setStep(0);
     setFormErr(null);
     setFieldErrors({});
-    if (signedIn && !profile && !profileLoading) {
+    if (signedIn && (!profile || !profile.phone || !profile.telegram) && !profileLoading) {
       setReturnToSell(true);
       setModal("profile");
       return;
@@ -632,7 +632,7 @@ export default function Home() {
           >
             <User size={20} />
           </button>
-          {!signedIn && <a className="market-signin" href="/signin-with-chatgpt?return_to=%2F%3Fprofile%3D1" target="_top">{t("loginOrRegister")}</a>}
+          {!signedIn && <a className="market-signin" href="/account" target="_top">{t("loginOrRegister")}</a>}
           <button className="primary sell-nav" onClick={openSell}>
             <Plus size={17} />
             {t("sell")}
@@ -1088,7 +1088,7 @@ export default function Home() {
               {!signedIn ? (
                 <a
                   className="primary full"
-                  href="/signin-with-chatgpt?return_to=%2F%3Fsell%3D1"
+                  href="/account?returnTo=%2F%3Fsell%3D1"
                   target="_top"
                 >
                   {t("signinBtn")}
@@ -1096,7 +1096,7 @@ export default function Home() {
                 </a>
               ) : profileLoading ? (
                 <p>{t("loading")}</p>
-              ) : !profile ? (
+              ) : !profile || !profile.phone || !profile.telegram ? (
                 <>
                   <p className="notice">{t("profileForSelling")}</p>
                   <button

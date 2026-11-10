@@ -133,6 +133,13 @@ export const errorMessages = {
   adminRateLimit: ["Too many attempts. Try again in 15 minutes.", "Слишком много попыток. Повторите через 15 минут.", "Urinishlar juda ko‘p. 15 daqiqadan so‘ng qayta urining."],
   adminInput: ["Enter a valid email, a password of 12–128 characters, and a reason of 5–300 characters.", "Введите корректный email, пароль из 12–128 символов и причину из 5–300 символов.", "To‘g‘ri email, 12–128 belgili parol va 5–300 belgili sabab kiriting."],
   adminExists: ["This administrator already exists.", "Этот администратор уже добавлен.", "Bu administrator allaqachon qo‘shilgan."],
+  accountInput: ["Enter a valid email and a password of 12–128 characters. New accounts also need a name of 2–70 characters.", "Введите корректный email и пароль из 12–128 символов. Для нового аккаунта нужно имя из 2–70 символов.", "To‘g‘ri email va 12–128 belgili parol kiriting. Yangi akkaunt uchun 2–70 belgili ism ham kerak."],
+  loginCredentials: ["Incorrect email or password.", "Неверный email или пароль.", "Email yoki parol noto‘g‘ri."],
+  verifyEmail: ["Verify ownership of this email before creating a password.", "Подтвердите, что email принадлежит вам, прежде чем создавать пароль.", "Parol yaratishdan oldin email sizga tegishli ekanini tasdiqlang."],
+  passwordMismatch: ["The passwords do not match.", "Пароли не совпадают.", "Parollar mos kelmadi."],
+  accountExists: ["An account already exists. Use Log in instead of creating another account.", "Аккаунт уже существует. Используйте вход, не создавайте второй аккаунт.", "Akkaunt allaqachon mavjud. Yangisini yaratish o‘rniga tizimga kiring."],
+  existingSetup: ["This email already has a profile. Use password setup to keep your existing profile.", "У этого email уже есть профиль. Создайте пароль для существующего профиля.", "Bu emailda profil mavjud. Mavjud profilni saqlash uchun unga parol o‘rnating."],
+  loginInput: ["Enter a valid email and a password of 12–128 characters.", "Введите корректный email и пароль из 12–128 символов.", "To‘g‘ri email va 12–128 belgili parol kiriting."],
 } as const;
 export type ErrorCode = keyof typeof errorMessages;
 export type ErrorInfo = { code: ErrorCode; field?: string; limit?: number };

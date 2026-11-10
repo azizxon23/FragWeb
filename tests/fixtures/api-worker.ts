@@ -8,6 +8,9 @@ import * as publicProfile from "../../app/api/profiles/[id]/route";
 import * as image from "../../app/api/images/[key]/route";
 import * as adminSession from "../../app/api/admin/session/route";
 import * as adminAccounts from "../../app/api/admin/accounts/route";
+import * as account from "../../app/api/account/route";
+import * as cleanup from "../../app/api/admin/cleanup/route";
+import * as adminUser from "../../app/api/admin/users/[id]/route";
 import * as me from "../../app/api/me/route";
 const routes: Record<
   string,
@@ -20,10 +23,13 @@ const routes: Record<
   "/api/admin/accounts": adminAccounts,
   "/api/uploads": uploads,
   "/api/me": me,
+  "/api/account": account,
+  "/api/admin/cleanup": cleanup,
 };
 export default {
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
+    if (path.startsWith("/api/admin/users/")) return adminUser.GET(request,{params:Promise.resolve({id:path.split("/").pop()!})});
     if (path.startsWith("/api/profiles/"))
       return publicProfile.GET(request, {
         params: Promise.resolve({ id: path.split("/").pop()! }),

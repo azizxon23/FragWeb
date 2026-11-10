@@ -1,3 +1,4 @@
+import { profileInput } from "@/lib/validation";
 import { env } from "cloudflare:workers";
 import { access } from "@/lib/auth";
 import { failure } from "@/lib/errors";
@@ -5,7 +6,8 @@ export async function POST(request: Request) {
   try {
     const auth = await access(request, true);
     if (auth.error) return auth.error;
-    if (!auth.profile) return failure(request, "profileRequired", 409);
+    const avatar = new URL(request.url).searchParams.get("purpose") === "avatar";
+    if (!auth.profile || (!avatar && !profileInput.safeParse(auth.profile).success)) return failure(request, "profileRequired", 409);
     if (Number(request.headers.get("content-length")) > 5500000)
       return failure(request, "photoSize", 413);
     const data = await request.formData();
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
     const key = crypto.randomUUID() + "." + ext;
     await env.BUCKET!.put(key, bytes, {
       httpMetadata: { contentType: type },
-      customMetadata: { owner: auth.owner! },
+      customMetadata: { owner: auth.owner!, purpose: avatar ? "avatar" : "listing" },
     });
     return Response.json({ url: "/api/images/" + key });
   } catch {

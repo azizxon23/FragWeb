@@ -12,9 +12,13 @@ Buyers and sellers chat directly on Telegram. There is no in-site messaging, pay
 
 ## Accounts, administrator access, and translated validation
 
-Open **My profile** from the person icon or footer, sign in, and save your seller details. A profile is required before uploading photos or publishing. Listing contact details are taken from the authenticated account, preventing seller impersonation. Profile edits are reflected in public listing contact details, including existing listings for that account.
+The public marketplace lives at `/`; **Log in / Sign up** opens `/account`. Registration creates a password and requires email ownership verification through the existing ChatGPT sign-in service. After signup, ordinary logins use email and password directly; a ChatGPT session alone never signs someone into the marketplace. Email values are trimmed and lowercased, and the database enforces one credential record per email and verified identity. Concurrent duplicate signups fail atomically without duplicate profiles. Passwords use salted PBKDF2 verifiers; cookies are Secure, HttpOnly and SameSite=Strict and expire after eight hours. Logout and expiry invalidate marketplace access. Login attempts are rate limited by email and edge IP.
 
-The marketplace lives at `/`; the separate dark administration portal lives at `/admin`. Public visitors can browse without signing in. Selling, uploads and profile changes require sign-in. Admin controls and badges never appear inside seller profiles.
+Existing passwordless profiles must use **Already had a profile without a password? Set one up**. Verify the original email, create and confirm a password, then log in normally. The setup path preserves the profile ID, listings and contacts, and cannot overwrite an existing password. A new signup using an existing profile/email is rejected. Marketplace and admin passwords/sessions are completely separate.
+
+Open **My profile** to save your seller details and choose a profile picture. New signups appear in the admin user list immediately, but need a valid phone/Telegram profile before selling. Avatars use R2 with an explicit upload purpose, ownership checks, a 5 MB limit and JPG/PNG/WebP signature validation. Save the profile to apply the chosen image. Public profiles expose the image and public details; private phone/email and credential/session records remain restricted. Images removed from a profile are detached, not deleted from shared storage.
+
+The marketplace lives at `/`; the separate dark administration portal lives at `/admin`. Public visitors can browse without signing in. Selling, uploads and profile changes require sign-in. Admin controls and badges never appear inside seller profiles. The **Users** section labels every marketplace profile as **User**, even if that person also has a separate admin identity. Click a user to open a keyboard-accessible popup with private contact details, profile picture, account setup status and their 20 most recent listings. Full admin permissions are required on the detail API; passwords, verifiers and session tokens are never returned.
 
 In `/admin`, verify your ChatGPT identity, then enter your administrative email and password. This creates a separate 8-hour HttpOnly, Secure, SameSite=Strict session bound to that verified identity. Marketplace login alone never grants administrative access. The owner email and PBKDF2 password verifier are configured as server runtime secrets `FRAGWEB_OWNER_EMAIL` and `FRAGWEB_OWNER_PASSWORD_HASH`. Missing configuration fails closed. The old `FRAGWEB_ADMIN_EMAILS` allowlist is no longer used. No admin password or verifier is committed to Git or sent to the browser.
 
@@ -22,7 +26,9 @@ The portal includes user/listing search, private contact details, reversible sus
 
 For **portable loopback development only**, configure the ignored `.dev.vars` with `FRAGWEB_OWNER_EMAIL` matching the starter's simulated identity and a test-only verifier produced by running `node scripts/admin-password-hash.mjs` (password input is hidden). Never use the simulated identity for a public deployment. Production runtime secrets do not sync through Git. To use the configured production owner on your Mac, use the hosted `/admin` URL.
 
-The admin panel lists saved seller profiles, not anonymous visitors or all accounts that merely signed in. All admin mutations include a reason and atomically log the change. Admin accounts are protected from suspension. Suspended profiles cannot write, and their public listings/profiles are hidden.
+The admin panel lists marketplace profiles, including new registrations with incomplete seller details. It does not list anonymous visitors or treat external sign-in alone as registration. All admin mutations include a reason and atomically log the change. Admin accounts are protected from suspension. Suspended profiles cannot write, and their public listings/profiles are hidden.
+
+The owner-only **Remove approved test listing** control archives the exact inspected test offer, retains its photo for recovery, preserves all seller profiles/other listings/admins, cleans expired sessions and rate-limit windows, and writes an audit event. It is idempotent and refuses changed test data. The action requires an authenticated owner admin session; deployment itself never silently deletes marketplace records.
 
 Forms use application-owned validation with `noValidate`, so warning language follows the selected EN/RU/UZ language rather than the browser's locale. API failures carry stable codes and localized messages selected with `X-Fragweb-Language: en|ru|uz`. Error codes are translated again by the interface, so an existing error can be rendered in the current language. The server continues to validate all submitted data independently.
 
@@ -64,6 +70,7 @@ Apply each later migration once in order as well:
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_smiling_captain_marvel.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0002_bored_killmonger.sql
 node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0003_cloudy_luke_cage.sql
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0004_slow_selene.sql
 ```
 
 Do not replay migrations already applied. `git pull` updates source files; it does not install dependencies, migrate your local database, or deploy the hosted site.
@@ -129,6 +136,10 @@ npm run build
 ```
 
 Tests cover validation boundaries, EN/RU/UZ errors, catalog ranking, unknown matches, valid/tampered/expired Telegram signatures, and fail-closed administrator permissions. The isolated Miniflare API test applies every migration and exercises profile privacy, role injection rejection, uploads, ownership, moderation, suspension, restoration, audit logging, and same-origin checks. Test identities and records are temporary and never inserted into the deployed database. Browser checks cover catalog display, finder, filtering, saved items, translations, and sign-in gating. Full authenticated publishing and real Telegram client end-to-end checks require a signed-in deployment / connected bot.
+
+## Known limits
+
+Password recovery/change, email changes and replacing ChatGPT-based email verification with transactional email are not implemented. Keep the verified identity integration when moving hosts, or replace it with a verified email provider. Native password login already works without ChatGPT after account setup.
 
 ## Before a public launch
 

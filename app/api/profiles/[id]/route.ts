@@ -30,6 +30,7 @@ export async function GET(
         displayName: p.displayName,
         city: p.city,
         bio: p.bio,
+        avatar: p.avatar,
         telegram: p.telegram,
         createdAt: p.createdAt,
         listingCount: total.count,

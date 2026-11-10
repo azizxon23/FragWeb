@@ -1,4 +1,5 @@
 "use client";
+import UserDetails from "./user-details";
 import { useEffect, useRef, useState } from "react";
 import {
   ShieldCheck,
@@ -24,7 +25,8 @@ type Audit = {
 };
 type AdminRow = Partial<Profile & Listing> & {
   id: string;
-  isAdmin?: boolean;
+  role?: string;
+  protectedAccount?: boolean;
   action?: string;
   reason?: string;
   targetId?: string;
@@ -75,6 +77,7 @@ export default function AdminPanel({
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(false),
     [refresh, setRefresh] = useState(0);
+  const [selectedUser,setSelectedUser]=useState<string|null>(null);
   const counter = useRef(0);
   useEffect(() => {
     const request = ++counter.current;
@@ -144,6 +147,7 @@ export default function AdminPanel({
       : "—";
   return (
     <>
+      {selectedUser && <UserDetails key={selectedUser} id={selectedUser} lang={lang} headers={headers} cityName={cityName} onClose={()=>setSelectedUser(null)}/>}
       <div className="admin-heading">
         <span className="modal-icon">
           <ShieldCheck size={24} />
@@ -274,12 +278,12 @@ export default function AdminPanel({
         ) : (
           !error &&
           data?.rows.map((row) => (
-            <article className="admin-record" key={row.id}>
+            <article className={"admin-record"+(section==="users"?" clickable-user":"")} key={row.id} onClick={e=>{if(section==="users" && !(e.target as HTMLElement).closest("button,a"))setSelectedUser(row.id);}}>
               {section === "users" ? (
                 <>
                   <div className="record-top">
                     <div>
-                      <h3>{row.displayName}</h3>
+                      <h3><button className="admin-user-open" onClick={()=>setSelectedUser(row.id)}>{row.avatar && <img src={row.avatar} className="user-avatar small" alt=""/>}{row.displayName}</button></h3>
                       <span
                         className={
                           row.status === "suspended"
@@ -293,13 +297,9 @@ export default function AdminPanel({
                             : "activeStatus",
                         )}
                       </span>
-                      {row.isAdmin && (
-                        <span className="status-badge admin">
-                          {t("administrator")}
-                        </span>
-                      )}
+                      <span className="status-badge">{t("marketUser")}</span>
                     </div>
-                    {!row.isAdmin && (
+                    {!row.protectedAccount && (
                       <button
                         className="outline"
                         disabled={busy}
@@ -337,11 +337,11 @@ export default function AdminPanel({
                     </div>
                     <div>
                       <dt>{t("phone")}</dt>
-                      <dd>{row.phone}</dd>
+                      <dd>{row.phone || "—"}</dd>
                     </div>
                     <div>
                       <dt>Telegram</dt>
-                      <dd>@{row.telegram}</dd>
+                      <dd>{row.telegram ? "@"+row.telegram : "—"}</dd>
                     </div>
                     <div>
                       <dt>{t("city")}</dt>
@@ -374,7 +374,7 @@ export default function AdminPanel({
                         )}
                       </span>
                       <span className="status-badge">
-                        {t(row.status === "sold" ? "sold" : "activeStatus")}
+                        {t(row.status === "archived" ? "archived" : row.status === "sold" ? "sold" : "activeStatus")}
                       </span>
                     </div>
                     <button

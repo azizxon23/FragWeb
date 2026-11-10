@@ -1,7 +1,8 @@
+import { env } from "cloudflare:workers";
 import { getDb } from "@/db";
 import { profiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { actor, access, trustedEmail } from "@/lib/auth";
+import { actor, access } from "@/lib/auth";
 import { failure } from "@/lib/errors";
 import { profileInput, validationIssue } from "@/lib/validation";
 export async function GET(request: Request) {
@@ -38,8 +39,12 @@ export async function PUT(request: Request) {
       const e = validationIssue(parsed.error.issues[0]);
       return failure(request, e.code, 400, e.field, e.limit);
     }
+    if (parsed.data.avatar) {
+      const object = await env.BUCKET!.head(parsed.data.avatar.split('/').pop()!);
+      if (!object || object.customMetadata?.owner !== auth.owner || object.customMetadata?.purpose !== 'avatar') return failure(request, 'ownPhotos', 400, 'avatar');
+    }
     const now = Date.now();
-    const email = trustedEmail(request);
+    const email = auth.email!;
     await getDb()
       .insert(profiles)
       .values({

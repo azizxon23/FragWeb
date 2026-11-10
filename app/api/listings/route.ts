@@ -1,8 +1,8 @@
 import { getDb } from "@/db";
 import { listings, profiles } from "@/db/schema";
-import { desc, eq, and, or, isNull } from "drizzle-orm";
+import { desc, eq, ne, and, or, isNull } from "drizzle-orm";
 import { actor, access } from "@/lib/auth";
-import { listingInput, validationIssue } from "@/lib/validation";
+import { listingInput, profileInput, validationIssue } from "@/lib/validation";
 import { failure } from "@/lib/errors";
 import { env } from "cloudflare:workers";
 export async function GET(request: Request) {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       .leftJoin(profiles, eq(listings.ownerId, profiles.ownerId))
       .where(
         mine
-          ? eq(listings.ownerId, owner!)
+          ? and(eq(listings.ownerId, owner!),ne(listings.status,"archived"))
           : and(
               eq(listings.status, "active"),
               eq(listings.moderationStatus, "visible"),
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   try {
     const auth = await access(request, true);
     if (auth.error) return auth.error;
-    if (!auth.profile) return failure(request, "profileRequired", 409);
+    if (!auth.profile || !profileInput.safeParse(auth.profile).success) return failure(request, "profileRequired", 409);
     let raw;
     try {
       raw = await request.json();
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     const data = parsed.data;
     for (const path of data.photos) {
       const obj = await env.BUCKET!.head(path.split("/").pop()!);
-      if (!obj || obj.customMetadata?.owner !== auth.owner)
+      if (!obj || obj.customMetadata?.owner !== auth.owner || obj.customMetadata?.purpose === "avatar")
         return failure(request, "ownPhotos", 400, "photos");
     }
     const id = crypto.randomUUID();

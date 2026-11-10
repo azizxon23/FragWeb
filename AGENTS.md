@@ -18,7 +18,11 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 
 - Marketplace `/` and dark admin portal `/admin` are separate experiences. Never put admin controls or badges in seller profiles.
 - Admin APIs require a separate HttpOnly password session bound to verified ChatGPT identity. The protected owner uses FRAGWEB_OWNER_EMAIL and FRAGWEB_OWNER_PASSWORD_HASH runtime secrets; additional administrative identities live in admin_accounts, separate from profiles. Admins may add/revoke other admins with required audit reasons. Never expose hashes, grant access from a claimed email, remove the protected owner, or make the first registrant an admin.
+- Marketplace credentials live in marketplace_accounts, with normalized unique emails and verified identity keys. Signup, legacy password setup and login are distinct; only initial setup uses trusted email verification. Native marketplace writes require its separate password session, never only a platform/admin session. New signup creates a User profile without admin privileges.
 - Admin password sessions expire after 8 hours; revocation invalidates sessions immediately. Keep login rate limits, same-origin checks, and server enforcement. Public browsing is anonymous; uploads, selling and profile writes require verified identity.
+- User-detail APIs require admin authorization; never return password hashes or tokens. Label marketplace profiles as User and keep admin identities in the separate Administrators section.
+- Avatars require upload purpose and ownership validation, valid image types and size limits.
+- Cleanup archives only the specifically approved test listing, preserves other profiles/listings and requires the owner admin session. Never reset the database for a cleanup request.
 - Keep all private contact data out of public profile/listing responses. Admin and owner endpoints may expose only the data appropriate for that role.
 - Suspended profiles must be excluded from public listings and must be blocked from write actions, including uploads.
 - Admin mutations must include a reason and atomically record an audit event. Preserve the owner suspension guard.
