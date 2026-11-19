@@ -15,13 +15,14 @@ export const cityValues = [
   "Urgench",
   "Gulistan",
 ] as const;
+const telegramUsernamePattern = /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
+export const telegramUsername = z.string().trim().regex(telegramUsernamePattern);
+export const signupTelegramUsername = z.string().transform(value => value.trim().replace(/^@/, "")).pipe(telegramUsername);
+
 export const profileInput = z.object({
   displayName: z.string().trim().min(2).max(70),
   phone: z.string().regex(/^\+998[0-9]{9}$/),
-  telegram: z
-    .string()
-    .trim()
-    .regex(/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/),
+  telegram: telegramUsername,
   city: z.enum(cityValues),
   bio: z.string().trim().max(500).default(""),
   avatar: z.union([z.literal(""), z.string().regex(/^\/api\/images\/[a-f0-9-]+\.(jpg|png|webp)$/)]).default(""),
@@ -30,7 +31,7 @@ export const listingInput = z
   .object({
     seller: z.string().trim().min(2).max(70),
     phone: z.string().regex(/^\+998[0-9]{9}$/),
-    telegram: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/),
+    telegram: z.string().regex(telegramUsernamePattern),
     city: z.enum(cityValues),
     brand: z.string().trim().min(2).max(80),
     name: z.string().trim().min(2).max(100),

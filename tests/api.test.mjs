@@ -110,24 +110,31 @@ test("profile privacy, localized validation, listing ownership and admin moderat
       403,
     );
     assert.equal((await call('/api/profile','GET',undefined,'owner')).status,401,'admin session cannot bypass marketplace password');
-    const nativeSignup={mode:'signup',email:'native@example.test',password:'native-password-123',confirmPassword:'native-password-123',displayName:'Native User'};
+    const nativeSignup={mode:'signup',email:'native@example.test',password:'native-password-123',confirmPassword:'native-password-123',displayName:'Native User',telegram:'@market_handle'};
     const nativeRegistered=await mf.dispatchFetch('https://fragweb.test/api/account',{method:'POST',headers:{origin:'https://fragweb.test','content-type':'application/json'},body:JSON.stringify(nativeSignup)});
     assert.equal(nativeRegistered.status,201,'public signup works without ChatGPT or a phone');
     const nativeSession=nativeRegistered.headers.get('set-cookie').split(';')[0];
-    assert.equal((await mf.dispatchFetch('https://fragweb.test/api/profile',{headers:{cookie:nativeSession}})).status,200);
+    const nativeProfileResponse=await mf.dispatchFetch('https://fragweb.test/api/profile',{headers:{cookie:nativeSession}});
+    assert.equal(nativeProfileResponse.status,200);
+    assert.equal((await nativeProfileResponse.json()).profile.telegram,'market_handle');
+    for (const telegram of [undefined, 'https://t.me/market_handle', 'bad!']) {
+      const invalidSignup=await call('/api/account','POST',{...nativeSignup,email:'invalid-telegram@example.test',telegram});
+      assert.equal(invalidSignup.status,400);
+      assert.equal((await invalidSignup.json()).code,'username');
+    }
     assert.equal((await mf.dispatchFetch('https://fragweb.test/api/admin',{headers:{cookie:nativeSession}})).status,401,'native signup never grants admin access');
     const nativeLogin=await call('/api/account','POST',{mode:'login',email:'NATIVE@example.test',password:nativeSignup.password});assert.equal(nativeLogin.status,200);
     assert.equal((await call('/api/account','POST',{mode:'login',email:nativeSignup.email,password:'wrong-password-123'})).status,401);
     assert.equal((await call('/api/account','POST',{...nativeSignup,confirmPassword:'different-password'})).status,400);
     assert.equal((await call('/api/account','POST',nativeSignup)).status,409,'native duplicate rejected');
     for(const who of ['seller','other']) {
-      const registered=await call('/api/account','POST',{mode:'signup',email:who+'@example.test',password:who+'-password-123',confirmPassword:who+'-password-123',displayName:who+' account'},who);
+      const registered=await call('/api/account','POST',{mode:'signup',email:who+'@example.test',password:who+'-password-123',confirmPassword:who+'-password-123',displayName:who+' account',telegram:'@market_handle'},who);
       assert.equal(registered.status,201,await registered.text());
-      const duplicate=await call('/api/account','POST',{mode:'signup',email:who.toUpperCase()+'@EXAMPLE.TEST',password:'different-password',confirmPassword:'different-password',displayName:'Duplicate'},who);
+      const duplicate=await call('/api/account','POST',{mode:'signup',email:who.toUpperCase()+'@EXAMPLE.TEST',password:'different-password',confirmPassword:'different-password',displayName:'Duplicate',telegram:'@market_handle'},who);
       assert.equal(duplicate.status,409,'normalized email cannot be registered twice');
     }
     assert.equal((await (await call('/api/admin','GET',undefined,'owner')).json()).stats.users,3,'registration appears immediately in admin users');
-    assert.equal((await call('/api/account','POST',{mode:'signup',email:'seller@example.test',password:'second-identity-pwd',confirmPassword:'second-identity-pwd',displayName:'Spoofed'},'other')).status,409);
+    assert.equal((await call('/api/account','POST',{mode:'signup',email:'seller@example.test',password:'second-identity-pwd',confirmPassword:'second-identity-pwd',displayName:'Spoofed',telegram:'@market_handle'},'other')).status,409);
     let response = await call(
       "/api/profile",
       "PUT",
@@ -340,7 +347,7 @@ test("profile privacy, localized validation, listing ownership and admin moderat
     rows = await (await call("/api/listings")).json();
     assert.equal(rows[0].seller, "Updated Seller");
     assert.equal(rows[0].city, "Samarkand");
-    assert.equal((await call('/api/account','POST',{mode:'signup',email:'owner@example.test',password:'marketplace-owner-password',confirmPassword:'marketplace-owner-password',displayName:'Owner'},'owner')).status,201);
+    assert.equal((await call('/api/account','POST',{mode:'signup',email:'owner@example.test',password:'marketplace-owner-password',confirmPassword:'marketplace-owner-password',displayName:'Owner',telegram:'@market_handle'},'owner')).status,201);
     await call(
       "/api/profile",
       "PUT",
@@ -434,13 +441,13 @@ test("profile privacy, localized validation, listing ownership and admin moderat
     // Preserve pre-existing identity/profile when setting a first password.
     await db.prepare('INSERT INTO profiles (id,owner_id,display_name,email,phone,telegram,city,bio,avatar,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind('legacy-profile','chatgpt:legacy','Legacy Seller','legacy@example.test','+998901111111','legacy_user','Tashkent','','','active',1,1).run();
     let existingStatus=await (await call('/api/account','GET',undefined,'legacy')).json();assert.equal(existingStatus.needsSetup,true);
-    const legacyBody={email:'legacy@example.test',password:'legacy-password-123',confirmPassword:'legacy-password-123',displayName:'Should not overwrite'};
+    const legacyBody={email:'legacy@example.test',password:'legacy-password-123',confirmPassword:'legacy-password-123',displayName:'Should not overwrite',telegram:'@market_handle'};
     assert.equal((await call('/api/account','POST',{...legacyBody,mode:'signup'},'legacy')).status,409,'existing user does not go through new signup');
     assert.equal((await call('/api/account','POST',{...legacyBody,mode:'setup',confirmPassword:'different-password'},'legacy')).status,400);
     assert.equal((await call('/api/account','POST',{...legacyBody,mode:'setup'},'legacy')).status,201);
     assert.equal((await (await call('/api/profile','GET',undefined,'legacy')).json()).profile.id,'legacy-profile');
     assert.equal((await call('/api/account','POST',{...legacyBody,mode:'setup'},'legacy')).status,409,'setup cannot reset an existing password');
-    const raceBody={mode:'signup',email:'race@example.test',password:'race-password-123',confirmPassword:'race-password-123',displayName:'Race User'};
+    const raceBody={mode:'signup',email:'race@example.test',password:'race-password-123',confirmPassword:'race-password-123',displayName:'Race User',telegram:'@market_handle'};
     const race=await Promise.all([call('/api/account','POST',raceBody,'race'),call('/api/account','POST',raceBody,'race')]);assert.deepEqual(race.map(x=>x.status).sort(),[201,409]);
     assert.equal((await db.prepare('SELECT count(*) AS n FROM profiles WHERE email = ?').bind('race@example.test').first()).n,1,'concurrent signup cannot create duplicate profiles');
     // Cleanup is narrowly scoped, reversible, owner-only and idempotent.
@@ -468,7 +475,7 @@ test("profile privacy, localized validation, listing ownership and admin moderat
     });
     assert.equal(csrf.status, 403);
     await db.prepare("INSERT INTO admin_accounts(email,password_hash,added_by,created_at) VALUES('claimed-admin@example.test','unused-verifier','test',1)").run();
-    const claimBody={mode:'signup',email:'claimed-admin@example.test',password:'native-claim-password',confirmPassword:'native-claim-password',displayName:'Email claimant'};
+    const claimBody={mode:'signup',email:'claimed-admin@example.test',password:'native-claim-password',confirmPassword:'native-claim-password',displayName:'Email claimant',telegram:'@market_handle'};
     const claim=await mf.dispatchFetch('https://fragweb.test/api/account',{method:'POST',headers:{origin:'https://fragweb.test','content-type':'application/json'},body:JSON.stringify(claimBody)});assert.equal(claim.status,201);
     const claimCookie=claim.headers.get('set-cookie').split(';')[0];
     assert.equal((await mf.dispatchFetch('https://fragweb.test/api/admin',{headers:{cookie:claimCookie}})).status,401);

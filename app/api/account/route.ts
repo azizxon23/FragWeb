@@ -7,8 +7,9 @@ import { sameOrigin } from '@/lib/auth';
 import { digest, passwordHash, verifyPassword } from '@/lib/admin-password';
 import { limited, marketSession, marketProfile, marketCookie, marketToken, newMarketSession, normalizeEmail } from '@/lib/market-auth';
 import { failure } from '@/lib/errors';
+import { signupTelegramUsername } from '@/lib/validation';
 import { z } from 'zod';
-const credentials = z.object({ mode:z.enum(['login','signup','setup']), email:z.string().trim().email().max(254).transform(normalizeEmail), password:z.string().min(12).max(128), confirmPassword:z.string().optional(), displayName:z.string().trim().min(2).max(70).optional() });
+const credentials = z.object({ mode:z.enum(['login','signup','setup']), email:z.string().trim().email().max(254).transform(normalizeEmail), password:z.string().min(12).max(128), confirmPassword:z.string().optional(), displayName:z.string().trim().min(2).max(70).optional(), telegram:z.unknown().optional() });
 export async function GET(request: Request) {
   try {
     await applyRequestedProfileRemoval();
@@ -25,6 +26,12 @@ export async function POST(request: Request) {
     let raw;try{raw=await request.json();}catch{return failure(request,'invalid',400);}
     const parsed=credentials.safeParse(raw); if(!parsed.success) return failure(request,raw && typeof raw==='object' && 'mode' in raw && raw.mode==='login'?'loginInput':'accountInput',400);
     const {mode,email,password,confirmPassword,displayName}=parsed.data;
+    let telegram = '';
+    if (mode === 'signup') {
+      const username = signupTelegramUsername.safeParse(parsed.data.telegram);
+      if (!username.success) return failure(request, 'username', 400, 'telegram');
+      telegram = username.data;
+    }
     // Platform IP is provided by the trusted edge; identity/email quotas also apply.
     const ip=request.headers.get('cf-connecting-ip') || 'unknown';
     if(await limited('ip:'+await digest(ip),50) || await limited('email:'+await digest(email),10)) return failure(request,'adminRateLimit',429);
@@ -61,7 +68,7 @@ export async function POST(request: Request) {
       if(legacy) await db.insert(marketplaceAccounts).values({ownerId:owner,email,passwordHash:hash,createdAt:now});
       else await db.batch([
         db.insert(marketplaceAccounts).values({ownerId:owner,email,passwordHash:hash,createdAt:now}),
-        db.insert(profiles).values({id:crypto.randomUUID(),ownerId:owner,email,displayName:displayName!,phone:'',telegram:'',city:'Tashkent',bio:'',avatar:'',createdAt:now,updatedAt:now}),
+        db.insert(profiles).values({id:crypto.randomUUID(),ownerId:owner,email,displayName:displayName!,phone:'',telegram,city:'Tashkent',bio:'',avatar:'',createdAt:now,updatedAt:now}),
       ]);
     } catch(error) { if(/unique|constraint/i.test(String(error))) return failure(request,'accountExists',409); throw error; }
     return Response.json({ok:true},{status:201,headers:{'Set-Cookie':marketCookie(await newMarketSession(owner)),'Cache-Control':'no-store'}});

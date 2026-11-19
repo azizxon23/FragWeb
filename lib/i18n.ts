@@ -1,5 +1,6 @@
 export const messages = {
-  nativeSignupHelp: ['Create a marketplace account with your name, email and a new password. No ChatGPT account or phone number is required.', 'Создайте аккаунт: укажите имя, email и новый пароль. Аккаунт ChatGPT и номер телефона не нужны.', 'Ism, email va yangi parol bilan akkaunt yarating. ChatGPT akkaunti va telefon raqami shart emas.'],
+  signupTelegramHelp: ['Enter your Telegram username with or without @. It will appear on your public seller profile.', 'Укажите имя пользователя Telegram с @ или без него. Оно будет видно в вашем публичном профиле продавца.', 'Telegram foydalanuvchi nomingizni @ belgisi bilan yoki usiz kiriting. U ochiq sotuvchi profilingizda ko‘rinadi.'],
+  nativeSignupHelp: ['Create a marketplace account with your name, Telegram username, email and a new password. No ChatGPT account or phone number is required.', 'Создайте аккаунт: укажите имя, имя пользователя Telegram, email и новый пароль. Аккаунт ChatGPT и номер телефона не нужны.', 'Ism, Telegram foydalanuvchi nomi, email va yangi parol bilan akkaunt yarating. ChatGPT akkaunti va telefon raqami shart emas.'],
   likes: ['Likes', 'Нравится', 'Yoqtirishlar'],
   likeListing: ['Like listing', 'Нравится объявление', 'E’lonni yoqtirish'],
   unlikeListing: ['Remove like', 'Убрать отметку', 'Yoqtirishni bekor qilish'],
