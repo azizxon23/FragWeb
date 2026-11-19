@@ -33,6 +33,7 @@ import {
   type ErrorInfo,
 } from "@/lib/errors";
 import { validateForm, focusInvalid } from "@/lib/form-validation";
+import AccountLinks from "./account-links";
 import AccountPanel, { SellerProfile } from "./account-panel";
 import type { Profile, AccountData, PublicProfile } from "@/lib/account-types";
 const cities = [
@@ -633,7 +634,7 @@ export default function Home() {
           >
             <User size={20} />
           </button>
-          {!signedIn && <a className="market-signin" href="/account" target="_top">{t("loginOrRegister")}</a>}
+          {!signedIn && <AccountLinks lang={lang} nav/>}
           <button className="primary sell-nav" onClick={openSell}>
             <Plus size={17} />
             {t("sell")}
@@ -1090,14 +1091,7 @@ export default function Home() {
                 {t(signedIn ? "listingDesc" : "signDesc")}
               </p>
               {!signedIn ? (
-                <a
-                  className="primary full"
-                  href="/account?returnTo=%2F%3Fsell%3D1"
-                  target="_top"
-                >
-                  {t("signinBtn")}
-                  <ArrowRight size={17} />
-                </a>
+                <AccountLinks lang={lang} returnTo="/?sell=1"/>
               ) : profileLoading ? (
                 <p>{t("loading")}</p>
               ) : !profile || !profile.phone || !profile.telegram ? (

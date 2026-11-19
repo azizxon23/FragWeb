@@ -43,3 +43,12 @@ fieldset{border:0;margin:0;padding:0;min-width:0}.field [aria-invalid=true]{bord
 .listing-detail-photos img { height:150px; max-width:190px; border-radius:12px; object-fit:cover; }
 .listing-detail-dialog .seller-row p { overflow-wrap:anywhere; font-size:12px; opacity:.75; }
 @media(max-width:520px){.activity-summary{gap:12px}.product-activity{gap:4px}.listing-detail-dialog .dialog-inner{padding:24px 18px}}
+
+/* Distinct account actions stay visible on desktop and mobile. */
+.account-entry-links{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.account-entry-links>a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:12px 18px;font-size:14px;text-align:center;text-decoration:none}
+.account-entry-links:not(.account-entry-nav)>a{flex:1 1 180px}
+.account-entry-nav{gap:8px}
+.account-entry-nav>a{padding:10px 14px;white-space:nowrap}
+@media(max-width:1100px){.account-entry-nav>a{padding:10px;font-size:14px}.nav-actions{gap:9px}}
+@media(max-width:700px){.nav{height:auto;min-height:100px;padding-top:16px;padding-bottom:16px;align-items:flex-start}.nav .logo{margin-top:7px}.nav-actions{flex:1;flex-wrap:wrap;justify-content:flex-end}.account-entry-nav{flex-basis:100%;justify-content:flex-end;order:2}.account-entry-nav>a{flex:1 1 auto;white-space:normal}}

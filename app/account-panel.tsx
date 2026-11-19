@@ -1,4 +1,5 @@
 "use client";
+import AccountLinks from "./account-links";
 import ProviderChoices from "./provider-choices";
 import { useState } from "react";
 import {
@@ -128,14 +129,7 @@ export default function AccountPanel({
       <h2 id="dialog-title">{t(profile ? "profile" : "profileTitle")}</h2>
       <p className="dialog-desc">{t(signedIn ? "profileDesc" : "signDesc")}</p>
       {!signedIn ? (
-        <a
-          className="primary full"
-          href="/account"
-          target="_top"
-        >
-          {t("loginOrRegister")}
-          <ArrowRight size={17} />
-        </a>
+        <AccountLinks lang={lang} returnTo="/?profile=1"/>
       ) : (
         <>
           <ProviderChoices lang={lang} intent="link"/>
