@@ -66,7 +66,7 @@ export async function GET(request: Request) {
           rows: await Promise.all(rows.map(async ({ ownerId, ...r }) => ({
             ...r,
             role: "user",
-            protectedAccount: !!await adminAccount(r.email.toLowerCase()),
+            protectedAccount: ownerId.startsWith("chatgpt:") && !!await adminAccount(r.email.toLowerCase()),
           }))),
         },
         { headers: { "Cache-Control": "no-store" } },
@@ -154,7 +154,7 @@ export async function PATCH(request: Request) {
       if (!target) return failure(request, "notFound", 404);
       if (
         target.ownerId === auth.owner ||
-        !!await adminAccount(target.email.toLowerCase())
+        (target.ownerId.startsWith("chatgpt:") && !!await adminAccount(target.email.toLowerCase()))
       )
         return failure(request, "protectAdmin", 403);
       await db.batch([

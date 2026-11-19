@@ -18,13 +18,13 @@ FragWeb is a marketplace for pre-owned perfumes in Uzbekistan. Preserve the crea
 
 - Marketplace `/` and dark admin portal `/admin` are separate experiences. Never put admin controls or badges in seller profiles.
 - Admin APIs require a separate HttpOnly password session bound to verified ChatGPT identity. The protected owner uses FRAGWEB_OWNER_EMAIL and FRAGWEB_OWNER_PASSWORD_HASH runtime secrets; additional administrative identities live in admin_accounts, separate from profiles. Admins may add/revoke other admins with required audit reasons. Never expose hashes, grant access from a claimed email, remove the protected owner, or make the first registrant an admin.
-- Marketplace credentials live in marketplace_accounts, with normalized unique emails and verified identity keys. Signup, legacy password setup and login are distinct; only initial setup uses trusted email verification. Native marketplace writes require its separate password session, never only a platform/admin session. New signup creates a User profile without admin privileges.
+- Marketplace credentials live in marketplace_accounts, with normalized unique emails and unique identity keys. Signup, legacy password setup and login are distinct. Public signup creates a native marketplace account without ChatGPT; email is an unverified login identifier, never an admin credential. Legacy password setup still requires trusted verification before claiming an existing profile. Native marketplace writes require its separate password session, never only a platform/admin session. New signup creates a User profile without admin privileges.
 - Optional Google/Gmail and Telegram sign-in use server-validated OIDC + PKCE; SMS uses provider-verified one-time codes. Never activate unconfigured methods or claim they work without credentials. Keep phone optional unless the SMS method is selected.
 - external_identities are linked only through an explicit authenticated flow. Never merge based only on claimed identifiers, reuse an identity across profiles, or infer admin status from a provider account. Market sessions belong to profiles, including external profiles with no marketplace password.
 - Admin password sessions expire after 8 hours; revocation invalidates sessions immediately. Keep login rate limits, same-origin checks, and server enforcement. Public browsing is anonymous; uploads, selling and profile writes require verified identity.
 - User-detail APIs require admin authorization; never return password hashes or tokens. Label marketplace profiles as User and keep admin identities in the separate Administrators section.
 - Avatars require upload purpose and ownership validation, valid image types and size limits.
-- Cleanup archives only the specifically approved test listing, preserves other profiles/listings and requires the owner admin session. Never reset the database for a cleanup request.
+- Routine cleanup archives only the specifically approved test listing and requires the owner admin session. Explicit profile removal requests use short-lived private runtime configuration with an exact profile ID/creation-time match, atomic audit, and no admin-table changes. Never publish real account-removal identifiers in Git or reset the database for cleanup.
 - Keep all private contact data out of public profile/listing responses. Admin and owner endpoints may expose only the data appropriate for that role.
 - Suspended profiles must be excluded from public listings and must be blocked from write actions, including uploads.
 - Likes/comments use D1 and marketplace sessions, never device-only state or admin identity. One like per profile/listing; public activity excludes hidden/deleted comments and suspended authors. Comment deletion enforces author ownership in SQL. Admin comment moderation requires a reason and atomic audit.
@@ -39,6 +39,7 @@ node --experimental-strip-types --test tests/domain.test.mjs
 node --test tests/api.test.mjs
 node --test tests/providers.test.mjs
 node --test tests/engagement.test.mjs
+node --test tests/profile-removal.test.mjs
 npm run build
 ```
 

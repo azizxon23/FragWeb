@@ -1,4 +1,5 @@
 export const messages = {
+  nativeSignupHelp: ['Create a marketplace account with your name, email and a new password. No ChatGPT account or phone number is required.', 'Создайте аккаунт: укажите имя, email и новый пароль. Аккаунт ChatGPT и номер телефона не нужны.', 'Ism, email va yangi parol bilan akkaunt yarating. ChatGPT akkaunti va telefon raqami shart emas.'],
   likes: ['Likes', 'Нравится', 'Yoqtirishlar'],
   likeListing: ['Like listing', 'Нравится объявление', 'E’lonni yoqtirish'],
   unlikeListing: ['Remove like', 'Убрать отметку', 'Yoqtirishni bekor qilish'],

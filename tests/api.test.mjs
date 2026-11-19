@@ -110,15 +110,24 @@ test("profile privacy, localized validation, listing ownership and admin moderat
       403,
     );
     assert.equal((await call('/api/profile','GET',undefined,'owner')).status,401,'admin session cannot bypass marketplace password');
-    assert.equal((await call('/api/account','POST',{mode:'signup',email:'seller@example.test',password:'seller-password-123',confirmPassword:'seller-password-123',displayName:'Test Seller'})).status,401,'signup requires verified email ownership');
+    const nativeSignup={mode:'signup',email:'native@example.test',password:'native-password-123',confirmPassword:'native-password-123',displayName:'Native User'};
+    const nativeRegistered=await mf.dispatchFetch('https://fragweb.test/api/account',{method:'POST',headers:{origin:'https://fragweb.test','content-type':'application/json'},body:JSON.stringify(nativeSignup)});
+    assert.equal(nativeRegistered.status,201,'public signup works without ChatGPT or a phone');
+    const nativeSession=nativeRegistered.headers.get('set-cookie').split(';')[0];
+    assert.equal((await mf.dispatchFetch('https://fragweb.test/api/profile',{headers:{cookie:nativeSession}})).status,200);
+    assert.equal((await mf.dispatchFetch('https://fragweb.test/api/admin',{headers:{cookie:nativeSession}})).status,401,'native signup never grants admin access');
+    const nativeLogin=await call('/api/account','POST',{mode:'login',email:'NATIVE@example.test',password:nativeSignup.password});assert.equal(nativeLogin.status,200);
+    assert.equal((await call('/api/account','POST',{mode:'login',email:nativeSignup.email,password:'wrong-password-123'})).status,401);
+    assert.equal((await call('/api/account','POST',{...nativeSignup,confirmPassword:'different-password'})).status,400);
+    assert.equal((await call('/api/account','POST',nativeSignup)).status,409,'native duplicate rejected');
     for(const who of ['seller','other']) {
       const registered=await call('/api/account','POST',{mode:'signup',email:who+'@example.test',password:who+'-password-123',confirmPassword:who+'-password-123',displayName:who+' account'},who);
       assert.equal(registered.status,201,await registered.text());
       const duplicate=await call('/api/account','POST',{mode:'signup',email:who.toUpperCase()+'@EXAMPLE.TEST',password:'different-password',confirmPassword:'different-password',displayName:'Duplicate'},who);
       assert.equal(duplicate.status,409,'normalized email cannot be registered twice');
     }
-    assert.equal((await (await call('/api/admin','GET',undefined,'owner')).json()).stats.users,2,'registration appears immediately in admin users');
-    assert.equal((await call('/api/account','POST',{mode:'signup',email:'seller@example.test',password:'second-identity-pwd',confirmPassword:'second-identity-pwd',displayName:'Spoofed'},'other')).status,401);
+    assert.equal((await (await call('/api/admin','GET',undefined,'owner')).json()).stats.users,3,'registration appears immediately in admin users');
+    assert.equal((await call('/api/account','POST',{mode:'signup',email:'seller@example.test',password:'second-identity-pwd',confirmPassword:'second-identity-pwd',displayName:'Spoofed'},'other')).status,409);
     let response = await call(
       "/api/profile",
       "PUT",
@@ -236,7 +245,7 @@ test("profile privacy, localized validation, listing ownership and admin moderat
     response = await call("/api/admin", "GET", undefined, "owner");
     result = await response.json();
     assert.equal(response.status, 200);
-    assert.equal(result.stats.users, 2);
+    assert.equal(result.stats.users, 3);
     assert.equal(
       result.rows.find((p) => p.id === seller.id).phone,
       profiles.seller.phone,
@@ -458,6 +467,14 @@ test("profile privacy, localized validation, listing ownership and admin moderat
       body: JSON.stringify(profiles.seller),
     });
     assert.equal(csrf.status, 403);
+    await db.prepare("INSERT INTO admin_accounts(email,password_hash,added_by,created_at) VALUES('claimed-admin@example.test','unused-verifier','test',1)").run();
+    const claimBody={mode:'signup',email:'claimed-admin@example.test',password:'native-claim-password',confirmPassword:'native-claim-password',displayName:'Email claimant'};
+    const claim=await mf.dispatchFetch('https://fragweb.test/api/account',{method:'POST',headers:{origin:'https://fragweb.test','content-type':'application/json'},body:JSON.stringify(claimBody)});assert.equal(claim.status,201);
+    const claimCookie=claim.headers.get('set-cookie').split(';')[0];
+    assert.equal((await mf.dispatchFetch('https://fragweb.test/api/admin',{headers:{cookie:claimCookie}})).status,401);
+    const claims=await (await call('/api/admin?q=claimed-admin','GET',undefined,'owner')).json();assert.equal(claims.rows[0].protectedAccount,false,'unverified email cannot claim administrator protection');
+    assert.equal((await call('/api/admin','PATCH',{action:'userStatus',id:claims.rows[0].id,status:'suspended',reason:'Test unverified claimant'},'owner')).status,200);
+
   } finally {
     if (mf) await mf.dispose();
     await rm(temporary, { recursive: true, force: true });
