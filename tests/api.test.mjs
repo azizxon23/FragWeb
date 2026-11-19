@@ -111,6 +111,29 @@ test("profile privacy, localized validation, listing ownership and admin moderat
     );
     assert.equal((await call('/api/profile','GET',undefined,'owner')).status,401,'admin session cannot bypass marketplace password');
     const nativeSignup={mode:'signup',email:'native@example.test',password:'native-password-123',confirmPassword:'native-password-123',displayName:'Native User',telegram:'@market_handle'};
+    const submitAccountForm = (fields) => mf.dispatchFetch('https://fragweb.test/api/account', {
+      method: 'POST', redirect: 'manual',
+      headers: { origin: 'https://fragweb.test', 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(fields).toString(),
+    });
+    const formSignup = await submitAccountForm({...nativeSignup, email:'form-user@example.test',returnTo:'/?sell=1'});
+    assert.equal(formSignup.status,303);
+    assert.equal(formSignup.headers.get('location'),'/?sell=1');
+    assert.ok(formSignup.headers.has('set-cookie'));
+    const formLogin = await submitAccountForm({mode:'login',email:'form-user@example.test',password:nativeSignup.password,returnTo:'https://example.test/'});
+    assert.equal(formLogin.status,303);
+    assert.equal(formLogin.headers.get('location'),'/?profile=1');
+    const formError = await submitAccountForm({mode:'login',email:'form-user@example.test',password:'wrong-password'});
+    assert.equal(formError.status,303);
+    const retry = new URL(formError.headers.get('location'),'https://fragweb.test');
+    assert.equal(retry.searchParams.get('authError'),'loginCredentials');
+    assert.equal(retry.searchParams.has('password'),false);
+    assert.equal(formError.headers.has('set-cookie'),false);
+    // Remove the synthetic form account so the existing account-count assertions still apply.
+    const formAccount = await db.prepare('SELECT owner_id FROM marketplace_accounts WHERE email = ?').bind('form-user@example.test').first();
+    for (const table of ['marketplace_sessions','marketplace_accounts','profiles']) {
+      await db.prepare('DELETE FROM '+table+' WHERE owner_id = ?').bind(formAccount.owner_id).run();
+    }
     const nativeRegistered=await mf.dispatchFetch('https://fragweb.test/api/account',{method:'POST',headers:{origin:'https://fragweb.test','content-type':'application/json'},body:JSON.stringify(nativeSignup)});
     assert.equal(nativeRegistered.status,201,'public signup works without ChatGPT or a phone');
     const nativeSession=nativeRegistered.headers.get('set-cookie').split(';')[0];

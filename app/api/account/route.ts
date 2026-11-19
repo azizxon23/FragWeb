@@ -6,8 +6,9 @@ import { identity } from '@/lib/admin-auth';
 import { sameOrigin } from '@/lib/auth';
 import { digest, passwordHash, verifyPassword } from '@/lib/admin-password';
 import { limited, marketSession, marketProfile, marketCookie, marketToken, newMarketSession, normalizeEmail } from '@/lib/market-auth';
-import { failure } from '@/lib/errors';
+import { failure, type ErrorCode } from '@/lib/errors';
 import { signupTelegramUsername } from '@/lib/validation';
+import { safeAccountReturn } from '@/lib/providers';
 import { z } from 'zod';
 const credentials = z.object({ mode:z.enum(['login','signup','setup']), email:z.string().trim().email().max(254).transform(normalizeEmail), password:z.string().min(12).max(128), confirmPassword:z.string().optional(), displayName:z.string().trim().min(2).max(70).optional(), telegram:z.unknown().optional() });
 export async function GET(request: Request) {
@@ -21,9 +22,46 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   if(!sameOrigin(request)) return failure(request,'origin',403);
+  if (Number(request.headers.get('content-length')) > 4096) return failure(request, 'invalid', 400);
+  const isForm = request.headers.get('content-type')?.split(';')[0] === 'application/x-www-form-urlencoded';
+  let raw: unknown;
+  let form: URLSearchParams | undefined;
   try {
-    if(Number(request.headers.get('content-length'))>4096) return failure(request,'invalid',400);
-    let raw;try{raw=await request.json();}catch{return failure(request,'invalid',400);}
+    if (isForm) {
+      const body = await request.text();
+      if (body.length > 4096) return failure(request, 'invalid', 400);
+      form = new URLSearchParams(body);
+      raw = Object.fromEntries(form);
+    } else {
+      raw = await request.json();
+    }
+  } catch {
+    return failure(request, 'invalid', 400);
+  }
+
+  const result = await authenticate(request, raw);
+  if (!form) return result;
+  const returnTo = safeAccountReturn(form.get('returnTo'));
+  const headers = new Headers({ 'Cache-Control': 'no-store' });
+  if (result.ok) {
+    headers.set('Location', returnTo);
+    const cookie = result.headers.get('Set-Cookie');
+    if (cookie) headers.set('Set-Cookie', cookie);
+  } else {
+    const { code } = await result.json() as { code: ErrorCode };
+    const mode = form.get('mode');
+    const query = new URLSearchParams({
+      mode: mode === 'signup' || mode === 'setup' ? mode : 'login',
+      returnTo,
+      authError: code,
+    });
+    headers.set('Location', '/account?' + query);
+  }
+  return new Response(null, { status: 303, headers });
+}
+
+async function authenticate(request: Request, raw: unknown) {
+  try {
     const parsed=credentials.safeParse(raw); if(!parsed.success) return failure(request,raw && typeof raw==='object' && 'mode' in raw && raw.mode==='login'?'loginInput':'accountInput',400);
     const {mode,email,password,confirmPassword,displayName}=parsed.data;
     let telegram = '';

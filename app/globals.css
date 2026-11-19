@@ -52,3 +52,6 @@ fieldset{border:0;margin:0;padding:0;min-width:0}.field [aria-invalid=true]{bord
 .account-entry-nav>a{padding:10px 14px;white-space:nowrap}
 @media(max-width:1100px){.account-entry-nav>a{padding:10px;font-size:14px}.nav-actions{gap:9px}}
 @media(max-width:700px){.nav{height:auto;min-height:100px;padding-top:16px;padding-bottom:16px;align-items:flex-start}.nav .logo{margin-top:7px}.nav-actions{flex:1;flex-wrap:wrap;justify-content:flex-end}.account-entry-nav{flex-basis:100%;justify-content:flex-end;order:2}.account-entry-nav>a{flex:1 1 auto;white-space:normal}}
+
+.account-auth-tabs a{border:1px solid var(--line);border-radius:4px;padding:9px 16px;font-size:10px;color:#7a6f76}
+.account-auth-tabs a.selected{background:var(--plum);border-color:var(--plum);color:white}
